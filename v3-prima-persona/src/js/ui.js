@@ -4,7 +4,7 @@ const UI = (() => {
   const modal = E('modal'), titleEl = E('title'), dialogEl = E('dialog'), dText = E('dText'), dWho = E('dWho'), more = dialogEl.querySelector('.more');
   const promptEl = E('prompt'), pTitle = E('pTitle'), pDesc = E('pDesc'), pKey = E('pKey'), tbUse = E('tbUse');
   const floatersEl = E('floaters'), toastsEl = E('toasts'), bannerEl = E('banner'), fadeEl = E('fade');
-  const xh = E('xhair'), hurtEl = E('hurt'), lockHint = E('lockHint'), edgeL = E('edgeL'), edgeR = E('edgeR');
+  const xh = E('xhair'), hurtEl = E('hurt'), lockHint = E('lockHint'), edgeL = E('edgeL'), edgeR = E('edgeR'), bossEl = E('bossbar'), bossName = E('bossName'), bossHp = E('bossHp');
   const txt = new WeakMap();
   function setText(el, v) { v = String(v); if (txt.get(el) !== v) { txt.set(el, v); el.textContent = v; } }
   function show(el, on) { if (el.hidden === on) el.hidden = !on; }
@@ -16,17 +16,17 @@ const UI = (() => {
   /* ---------- HUD ---------- */
   function zone(L) {
     setText(E('zoneTag'), L.tag); setText(E('zoneName'), L.name);
-    setText(E('zoneWx'), L.kind === 'wagon' ? 'TETTO APERTO' : 'PIOGGIA SUI VETRI');
+    setText(E('zoneWx'), L.wx || 'PIOGGIA SUI VETRI');
     map(); objective(); coins();
   }
   function objText() {
     if (!level) return '';
     if (level.kind === 'hub') return save.cls ? level.obj : 'Scegli la tua classe';
     if (!run) return level.obj;
-    if (run.cleared) return 'Carrozza libera: apri la porta del Vagone 2';
+    if (run.cleared) return run.n >= WAGONS.length ? 'Tira il freno d\'emergenza accanto alla caldaia' : merchant ? 'Passa dalla bottega, poi apri la porta del Vagone ' + (run.n + 1) : 'Carrozza libera: apri la porta del Vagone ' + (run.n + 1);
     if (run.wave < 0) return 'Avanza nella carrozza';
     if (!run.active) return 'Arriva un\'altra ondata…';
-    return 'Ondata ' + (run.wave + 1) + ' di ' + Wv.length + ' · nemici rimasti: ' + (enemies.filter(e => !e.dead).length + run.queue.length);
+    return 'Ondata ' + (run.wave + 1) + ' di ' + run.waves.length + ' · nemici rimasti: ' + (enemies.filter(e => !e.dead).length + run.queue.length);
   }
   function objective() { setText(E('objSub'), objText()); }
   function coins() {
@@ -35,15 +35,17 @@ const UI = (() => {
     setText(E('orbs'), inRun ? run.kills : save.cleared);
     setText(E('orbsL'), inRun ? 'Nemici' : 'Vagoni');
   }
+  // la mappa del treno: cabina, poi i dieci vagoni (bordo rosso: boss, punto dorato: bottega)
   function map() {
-    const inW = level && level.kind === 'wagon', cl = run && run.cleared;
+    const inW = level && level.kind === 'wagon' && run, n = inW ? run.n : 0, cl = run && run.cleared;
     let h = '<div class="w home' + (inW ? ' done' : ' cur') + '"></div>';
-    for (let i = 1; i <= 3; i++) {
-      const c = i === 1 ? (inW ? (cl ? ' done' : ' cur') : (save.cleared > 0 ? ' done' : '')) : '';
-      h += '<div class="link"></div><div class="w' + c + '"></div>';
+    for (let i = 1; i <= WAGONS.length; i++) {
+      let c = inW ? (i < n || (i === n && cl) ? ' done' : i === n ? ' cur' : '') : (i <= (save.best || 0) ? ' seen' : '');
+      if (BOSS_WAGONS.includes(i)) c += ' boss'; if (WAGONS[i - 1].shop) c += ' shop';
+      h += '<div class="link"></div><div class="w' + c + '" title="' + i + ' · ' + WAGONS[i - 1].name + '"></div>';
     }
-    E('map').innerHTML = h + '<span class="more">…</span>';
-    setText(E('mapTxt'), inW ? 'Vagone 1 di 20' : 'Cabina · 20 vagoni davanti');
+    E('map').innerHTML = h;
+    setText(E('mapTxt'), inW ? 'Vagone ' + n + ' di ' + WAGONS.length + ' · ' + WAGONS[n - 1].name : 'Cabina · ' + WAGONS.length + ' vagoni fino alla locomotiva');
   }
   function weaponLine(w) {
     return '<span style="color:' + RAR[w.rar].c + '">' + esc(w.name) + '</span><small>DANNO ' + w.dmg + ' · RICARICA ' + w.cd + 's · CRIT ' + w.crit + '%</small>';
@@ -61,7 +63,7 @@ const UI = (() => {
     return '<span style="color:' + RAR[w.rar].c + '">' + RAR[w.rar].n + ' · Lv' + w.lvl + '</span> · Danno ' + w.dmg + cmp(w.dmg, cur.dmg) + ' · ' + w.cd + 's' + cmp(w.cd, cur.cd, true) + ' · Crit ' + w.crit + '%' + cmp(w.crit, cur.crit);
   }
   function weaponCard(w, cur) {
-    return '<b style="color:' + RAR[w.rar].c + '">' + esc(w.name) + '</b><div class="meta">' + RAR[w.rar].n.toUpperCase() + ' · LV ' + w.lvl + ' · ' + WT[w.type].n.toUpperCase() + '</div>' +
+    return '<b style="color:' + RAR[w.rar].c + '">' + esc(w.name) + '</b><div class="meta">' + RAR[w.rar].n.toUpperCase() + ' · LV ' + w.lvl + ' · ' + WT[w.type].n.toUpperCase() + '</div><div class="meta" style="margin-top:-4px">' + WT[w.type].d + '</div>' +
       '<div class="st"><span>Danno</span><span>' + w.dmg + cmp(w.dmg, cur.dmg) + '</span><span>Ricarica</span><span>' + w.cd + ' s' + cmp(w.cd, cur.cd, true) + '</span><span>Critico</span><span>' + w.crit + '%' + cmp(w.crit, cur.crit) + '</span></div>';
   }
 
@@ -74,11 +76,10 @@ const UI = (() => {
     if (floats.length > 40) floats.shift().d.remove();
   }
   function hpBar(boss) { const d = document.createElement('div'); d.className = 'hpb' + (boss ? ' boss' : ''); d.innerHTML = '<i></i>'; d.hidden = true; floatersEl.appendChild(d); return d; }
-  const HPH = { ratto: 1.05, scheletro: 2.35, arciere: 2.35, bigliettaio: 3.0 };
   function placeHp(e) {
-    const el = e.hpEl, want = e.type === 'bigliettaio' ? e.fadeIn <= 0 : e.hp < e.max;
-    if (!want || e.falling) { show(el, false); return; }
-    const s = project(e.x, e.y + HPH[e.type], e.z);
+    const el = e.hpEl, want = e.hp < e.max && e.state !== 'sleep' && (e.vis === undefined || e.vis > .5);
+    if (!want || e.falling || e.rising > 0) { show(el, false); return; }
+    const s = project(e.x, e.y + MOBS[e.type].hph, e.z);
     if (!s.ok) { show(el, false); return; }
     show(el, true); el.style.left = s.x.toFixed(1) + 'px'; el.style.top = s.y.toFixed(1) + 'px'; el.firstChild.style.width = Math.max(0, e.hp / e.max * 100) + '%';
   }
@@ -196,7 +197,7 @@ const UI = (() => {
   }
 
   /* bestiario */
-  const MOB_ORDER = ['ratto', 'scheletro', 'arciere', 'bigliettaio'];
+  const MOB_ORDER = Object.keys(MOBS);
   function bestiary() {
     let sel = 0; const known = MOB_ORDER.filter(t => save.kills[t]).length;
     const list = MOB_ORDER.map((t, i) => { const n = save.kills[t] || 0; return '<button class="opt' + (i === sel ? ' on' : '') + '" type="button" data-nav data-i="' + i + '">' + (n ? MOBS[t].name : '???') + '<span>' + (n ? '×' + n : '') + '</span></button>'; }).join('');
@@ -206,8 +207,8 @@ const UI = (() => {
         sel = i; modal.querySelectorAll('.opt').forEach((c, k) => c.classList.toggle('on', k === i));
         const t = MOB_ORDER[i], d = MOBS[t], n = save.kills[t] || 0, img = '<img src="' + mobPortrait(t) + '" alt="" class="' + (n ? '' : 'unknown') + '">';
         E('bdet').innerHTML = n
-          ? img + '<div><h3>' + d.name + '</h3><div class="lbl" style="color:var(--amber)">SCONFITTI · ' + n + (d.elite ? ' · MINI BOSS' : '') + '</div><div class="lbl" style="color:#ff9a5a">PUNTO DEBOLE</div><p>' + d.weak + '</p><div class="lbl" style="color:var(--teal)">STORIA</div><p>' + d.lore + '</p></div>'
-          : img + '<div><h3>???</h3><div class="lbl" style="color:var(--dim)">NON ANCORA INCONTRATO</div><p>Sconfiggi questa creatura per sbloccarne la scheda, i punti deboli e la storia. Si aggira nel Vagone 1.</p></div>';
+          ? img + '<div><h3>' + d.name + '</h3><div class="lbl" style="color:var(--amber)">SCONFITTI · ' + n + (d.boss ? ' · BOSS' : d.elite ? ' · MINI BOSS' : '') + ' · DAL VAGONE ' + d.where + '</div><div class="lbl" style="color:#ff9a5a">PUNTO DEBOLE</div><p>' + d.weak + '</p><div class="lbl" style="color:var(--teal)">STORIA</div><p>' + d.lore + '</p></div>'
+          : img + '<div><h3>???</h3><div class="lbl" style="color:var(--dim)">NON ANCORA INCONTRATO</div><p>Sconfiggi questa creatura per sbloccarne la scheda, i punti deboli e la storia. Si aggira ' + (d.boss || d.elite ? 'in fondo al Vagone ' : 'dal Vagone ') + d.where + '.</p></div>';
       },
       click(t) { if (t.dataset.i !== undefined) { this.nav(+t.dataset.i); sfx('tick'); } }
     });
@@ -239,16 +240,24 @@ const UI = (() => {
     ascia: '<g transform="rotate(28 32 32)" stroke="#2a2018" stroke-width="2"><rect x="29.5" y="6" width="5" height="52" fill="#6b4428"/><path d="M34.5 9 L52 4 L54 27 L34.5 22 Z" fill="#cfd6de"/><rect x="27" y="8" width="10" height="14" fill="#4a5058"/></g>',
     pugnale: '<g transform="rotate(45 32 32)" stroke="#2a2018" stroke-width="2"><path d="M29 14 L32 8 L35 14 L35 38 L29 38 Z" fill="#cfd6de"/><rect x="22" y="38" width="20" height="4" fill="#c8963c"/><rect x="29.5" y="42" width="5" height="11" fill="#5a3a26"/></g>',
     arco: '<g stroke="#2a2018" stroke-width="2" fill="none"><path d="M22 7 Q50 32 22 57" stroke="#6b4428" stroke-width="5"/><path d="M22 7 L22 57" stroke-width="1.5"/><path d="M12 32 L52 32"/><path d="M53 32 L45 27 L45 37 Z" fill="#cfd6de"/><path d="M12 32 L8 28 M12 32 L8 36" stroke="#8e2630" stroke-width="2.5"/></g>',
-    bastone: '<g transform="rotate(30 32 32)" stroke="#2a2018" stroke-width="2"><rect x="29.5" y="20" width="5" height="40" fill="#5a3a26"/><rect x="26.5" y="15" width="11" height="5" fill="#c8963c"/><rect x="25.5" y="2" width="13" height="13" fill="#c98bff" transform="rotate(45 32 8.5)"/></g>'
+    bastone: '<g transform="rotate(30 32 32)" stroke="#2a2018" stroke-width="2"><rect x="29.5" y="20" width="5" height="40" fill="#5a3a26"/><rect x="26.5" y="15" width="11" height="5" fill="#c8963c"/><rect x="25.5" y="2" width="13" height="13" fill="#c98bff" transform="rotate(45 32 8.5)"/></g>',
+    sciabola: '<g transform="rotate(45 32 32)" stroke="#2a2018" stroke-width="2"><path d="M29.5 40 Q25 22 34 4 Q37 22 35 40 Z" fill="#cfd6de"/><rect x="22" y="40" width="20" height="4" fill="#c8963c"/><rect x="29.5" y="44" width="5" height="11" fill="#5a3a26"/><path d="M40 43 Q45 51 35 57" fill="none" stroke="#c8963c" stroke-width="3"/></g>',
+    lancia: '<g transform="rotate(45 32 32)" stroke="#2a2018" stroke-width="2"><rect x="30" y="17" width="4" height="45" fill="#6b4428"/><path d="M32 2 L38 13 L32 20 L26 13 Z" fill="#cfd6de"/><rect x="28" y="19" width="8" height="4" fill="#c8963c"/><path d="M29 24 l-4 8 M35 24 l4 8" stroke="#8e2630" stroke-width="2.5"/></g>',
+    martello: '<g transform="rotate(30 32 32)" stroke="#2a2018" stroke-width="2"><rect x="29.5" y="18" width="5" height="42" fill="#6b4428"/><rect x="15" y="5" width="34" height="16" fill="#8a929c"/><rect x="21" y="5" width="3" height="16" fill="#c8963c"/><rect x="40" y="5" width="3" height="16" fill="#c8963c"/></g>',
+    falce: '<g transform="rotate(12 32 32)" stroke="#2a2018" stroke-width="2"><rect x="29.5" y="7" width="5" height="55" fill="#6b4428"/><path d="M32 8 Q49 1 59 19 Q46 10 34 15 Z" fill="#cfd6de"/><rect x="22" y="34" width="10" height="4" fill="#6b4428"/></g>',
+    balestra: '<g stroke="#2a2018" stroke-width="2"><rect x="29" y="18" width="6" height="40" fill="#6b4428"/><path d="M10 23 Q32 10 54 23" fill="none" stroke="#8a929c" stroke-width="4"/><path d="M10 23 L32 31 L54 23" fill="none" stroke-width="1.5"/><rect x="31" y="7" width="2" height="25" fill="#cfd6de"/><path d="M32 3 l-3.5 6 h7 z" fill="#cfd6de"/></g>',
+    trombone: '<g transform="rotate(-35 32 32)" stroke="#2a2018" stroke-width="2"><path d="M5 37 L22 30 L24 41 L8 47 Z" fill="#6b4428"/><rect x="22" y="29" width="28" height="7" fill="#c8963c"/><path d="M50 27 L60 21 L60 44 L50 38 Z" fill="#c8963c"/></g>',
+    tomo: '<g stroke="#2a2018" stroke-width="2"><path d="M7 18 Q20 13 32 20 L32 53 Q20 46 7 50 Z" fill="#efe6d0"/><path d="M57 18 Q44 13 32 20 L32 53 Q44 46 57 50 Z" fill="#efe6d0"/><path d="M37 25 L43 25 L39 34 L45 34 L36 47 L39 37 L34 37 Z" fill="#8ac8ff"/><path d="M13 27 h13 M13 33 h13 M13 39 h10" stroke="#9ba4a6"/></g>',
+    lanterna: '<g stroke="#2a2018" stroke-width="2"><path d="M26 5 h12 v6 h-12 z" fill="#c8963c"/><path d="M19 13 h26 l-3 7 h-20 z" fill="#c8963c"/><rect x="22" y="20" width="20" height="28" fill="#ffb060"/><path d="M32 26 q6 8 0 16 q-6 -8 0 -16" fill="#fff0c0" stroke="none"/><rect x="19" y="48" width="26" height="5" fill="#c8963c"/><path d="M22 20 v28 M42 20 v28" stroke="#c8963c" stroke-width="3"/></g>'
   };
   const icon = t => '<svg viewBox="0 0 64 64" aria-label="' + WT[t].n + '">' + ICON[t] + '</svg>';
   const TYPES = Object.keys(WT);
   function slot() {
     const cost = 25; let res = null;
     const bankTxt = () => 'IN BANCA: ' + save.bank + ' MONETE';
-    const hint = '<div class="meta">Tre simboli uguali: arma di livello 3. Due uguali: livello 2.<br>L\'arma vale per la prossima corsa.</div>';
+    const hint = '<div class="meta">' + TYPES.length + ' armi possibili. Tre simboli uguali: livello 3. Due uguali: livello 2.<br>L\'arma vale per la prossima corsa.</div>';
     openModal(panel(head('SLOT MACHINE', cost + ' MONETE · UN\'ARMA A CASO', true) +
-      '<div class="reels">' + [0, 1, 2].map(i => '<div class="reel" id="r' + i + '">' + icon(TYPES[(i * 2) % 5]) + '</div>').join('') + '</div>' +
+      '<div class="reels">' + [0, 1, 2].map(i => '<div class="reel" id="r' + i + '">' + icon(TYPES[(i * 4) % TYPES.length]) + '</div>').join('') + '</div>' +
       '<div class="res" id="sres">' + hint + '</div>' +
       '<div class="actions"><span class="saved" id="sBank" style="margin-right:auto;align-self:center">' + bankTxt() + '</span><button class="ghost" type="button" data-skip hidden>Lascia</button><button class="ghost" type="button" data-take hidden>Prendi</button><button class="cta" type="button" data-spin>Gira · ' + cost + ' monete</button></div>', 540), {
       closable: true, focus: '[data-spin]',
@@ -285,12 +294,42 @@ const UI = (() => {
     });
   }
 
+
+  /* bottega del robot (nei vagoni 3, 6 e 9, a vagone libero) */
+  function shop() {
+    if (!run || !run.shop) return;
+    const S = run.shop;
+    const card = (it, i) => {
+      const can = !it.sold && run.coins >= it.price && !(it.kind === 'heal' && p.hp >= p.max);
+      let body;
+      if (it.kind === 'heal') body = '<b>Tè caldo del robot</b><div class="meta">CURA · +2 VITA</div><p class="note">Bollente, dolce, vagamente metallico.</p>';
+      else if (it.kind === 'max') body = '<b>Ingranaggio di scorta</b><div class="meta">VITA MASSIMA +1 · CURA TUTTO</div><p class="note">Va avvitato da qualche parte. Meglio non chiedere dove.</p>';
+      else body = weaponCard(it.w, p.weapon);
+      return '<div class="item' + (it.sold ? ' sold' : '') + '">' + body + '<button class="' + (can ? 'cta' : 'ghost') + '" type="button" data-buy="' + i + '"' + (can ? '' : ' disabled') + '>' + (it.sold ? 'Venduto' : 'Compra · ' + it.price) + '</button></div>';
+    };
+    const draw = () => { E('shopItems').innerHTML = S.items.map(card).join(''); setText(E('shopCoins'), 'MONETE DELLA CORSA: ' + run.coins); };
+    openModal(panel(head('BOTTEGA DEL ROBOT', 'SI PAGA CON LE MONETE DELLA CORSA', true) + '<div class="shop" id="shopItems"></div><div class="actions"><span class="saved" id="shopCoins" style="margin-right:auto;align-self:center"></span><button class="cta" type="button" data-close>Riparti</button></div>', 680), {
+      closable: true, focus: '[data-close]',
+      click(t) {
+        if (t.dataset.buy === undefined) return;
+        const it = S.items[+t.dataset.buy]; if (!it || it.sold || run.coins < it.price) { sfx('hurt'); return; }
+        run.coins -= it.price; sfx('coin');
+        if (it.kind === 'heal') { p.hp = Math.min(p.max, p.hp + 2); }
+        else if (it.kind === 'max') { p.max++; p.hp = p.max; it.sold = true; run.bought++; }
+        else { const old = p.weapon; p.weapon = it.w; setModelWeapon(p.model, it.w); it.sold = true; if (merchant) dropPick('weapon', merchant.x - 1.8, merchant.z - 1.4, old); toast('Equipaggiata: ' + it.w.name, RAR[it.w.rar].c); }
+        sfx('pick'); player(); coins(); draw();
+      }
+    });
+    draw();
+  }
+
   /* fine corsa */
   function end(win, got) {
     STATE = 'end'; releaseAll(); clearDialog();
-    const q = win ? '«Il Vagone 2 è chiuso per lavori. Torna in cabina e riposa: il treno, intanto, continua a girare.»' : '«Capita. Il treno ti riporta sempre in cabina. Metà delle monete restano a te.»';
-    openModal(panel(head(win ? 'CARROZZA LIBERA' : 'SEI CADUTO', 'VAGONE 1 · CARROZZA PASSEGGERI', false) +
-      '<div class="stats"><span>' + (win ? 'Monete guadagnate' : 'Monete tenute (metà)') + '</span><b>' + got + '</b><span>Nemici sconfitti</span><b>' + (run ? run.kills : 0) + '</b><span>Tempo</span><b>' + mmss(run ? run.t : 0) + '</b><span>Monete in banca</span><b>' + save.bank + '</b></div>' +
+    const n = run ? run.n : 1, W = WAGONS[n - 1];
+    const q = win ? '«Il treno rallenta, stride, si ferma. Per la prima volta in centotrent\'anni si sente solo la pioggia. Grazie, passeggero.»' : '«Capita. Il treno ti riporta sempre in cabina. Metà delle monete restano a te.»';
+    openModal(panel(head(win ? 'IL TRENO SI È FERMATO' : 'SEI CADUTO', win ? 'DIECI VAGONI · LOCOMOTIVA' : 'VAGONE ' + n + ' · ' + W.name.toUpperCase(), false) +
+      '<div class="stats"><span>' + (win ? 'Monete guadagnate' : 'Monete tenute (metà)') + '</span><b>' + got + '</b><span>Vagoni superati</span><b>' + (win ? WAGONS.length : n - 1) + ' / ' + WAGONS.length + '</b><span>Nemici sconfitti</span><b>' + (run ? run.kills : 0) + '</b><span>Tempo</span><b>' + mmss(run ? run.t : 0) + '</b><span>Monete in banca</span><b>' + save.bank + '</b></div>' +
       '<p class="quote">' + q + '</p><div class="actions"><button class="cta" type="button" data-home>Torna alla cabina</button></div>', 520), {
       closable: false, focus: '[data-home]',
       click(t) { if (t.hasAttribute('data-home')) { closeModal(true); transition(() => startHub(false)); } }
@@ -325,7 +364,7 @@ const UI = (() => {
   /* ---------- titolo ---------- */
   function showTitle() {
     document.body.classList.add('intitle'); show(titleEl, true);
-    const f = save.bank || save.cleared ? 'IN BANCA ' + save.bank + ' MONETE · ' + save.cleared + ' VAGONI RIPULITI' : (isTouch ? 'JOYSTICK A SINISTRA · TRASCINA A DESTRA PER GUARDARE' : 'WASD MUOVI · MOUSE GUARDA · CLIC ATTACCA · SPAZIO SALTA');
+    const f = save.bank || save.cleared ? 'IN BANCA ' + save.bank + ' MONETE · ' + save.cleared + ' VAGONI RIPULITI' + (save.wins ? ' · TRENO FERMATO ' + save.wins + (save.wins > 1 ? ' VOLTE' : ' VOLTA') : save.best ? ' · RECORD: VAGONE ' + save.best : '') : (isTouch ? 'JOYSTICK A SINISTRA · TRASCINA A DESTRA PER GUARDARE' : 'WASD MUOVI · MOUSE GUARDA · CLIC ATTACCA · SPAZIO SALTA');
     setText(E('tfoot'), f);
     setTimeout(() => E('bStart').focus({ preventScroll: true }), 50);
   }
@@ -357,6 +396,9 @@ const UI = (() => {
       f.d.style.transform = 'translate(-50%,-50%) scale(' + (f.t < .1 ? 1 + (1 - f.t / .1) * .45 : 1).toFixed(2) + ')';
     }
     for (const e of enemies) if (!e.dead && e.hpEl) placeHp(e);
+    const boss = STATE === 'play' && enemies.find(e => !e.dead && MOBS[e.type].elite && !e.minion);
+    show(bossEl, !!boss); document.body.classList.toggle('bossfight', !!boss);
+    if (boss) { setText(bossName, MOBS[boss.type].name.toUpperCase() + (boss.lvl > 1 ? ' · LV ' + boss.lvl : '')); bossHp.style.width = Math.max(0, boss.hp / boss.max * 100).toFixed(1) + '%'; }
     coins(); objective();
     const playing = STATE === 'play' && p && !p.dead && level, free = playing && modal.hidden && titleEl.hidden && !fadeOn;
     show(xh, free);
@@ -494,5 +536,5 @@ const UI = (() => {
     setMuted(save.muted);
   }
 
-  return { init, clearDialog, zone, objective, coins, map, player, dialog, classSelect, bestiary, wardrobe, slot, end, settings, toast, banner, dmg, hpBar, placeHp, fade, blocking, frame, showTitle, startGame, closeModal, hit, hurtFrom, lock };
+  return { init, clearDialog, zone, objective, coins, map, player, dialog, classSelect, bestiary, wardrobe, slot, shop, end, settings, toast, banner, dmg, hpBar, placeHp, fade, blocking, frame, showTitle, startGame, closeModal, hit, hurtFrom, lock };
 })();

@@ -50,7 +50,7 @@ function backdrops(L) {
   for (const sd of [-1, 1]) {
     const m = MAT.land.clone(); m.map = TEX.land.clone(); m.map.needsUpdate = true; m.map.repeat.set(1.5, 1); m.map.offset.x = sd > 0 ? .37 : 0;
     plane(L, m, 320, 46, L.len / 2, 10, sd * 65, 0, sd > 0 ? Math.PI : 0, false);
-    L.fx.lands.push({ map: m.map, dir: sd > 0 ? -1 : 1 });
+    L.fx.lands.push({ map: m.map, mat: m, dir: sd > 0 ? -1 : 1 });
   }
 }
 function buildOutside(L) {
@@ -118,7 +118,7 @@ function floorLeaves(L, n, seed, near) {
 /* ---------- cabina letto (hub) ---------- */
 function buildHub() {
   const L = newLevel('hub', 0, 18, -5.5, 5.5), G = L.group, b = new Builder(), WH = 4.6;
-  L.name = 'Cabina letto'; L.tag = 'CABINA / 00'; L.moonK = 1.0; L.hemiK = .5; L.obj = 'Prepara la corsa, poi apri la porta del Vagone 1';
+  L.name = 'Cabina letto'; L.tag = 'CABINA / 00'; L.wx = 'PIOGGIA SUI VETRI'; L.moonK = 1.0; L.hemiK = .5; L.obj = 'Prepara la corsa, poi apri la porta del Vagone 1';
   TEX.wood.repeat.set(4.5, 2.75);
   plane(L, MAT.woodFloor, 18, 11, 9, 0, 0, -Math.PI / 2);
   plane(L, MAT.rug, 6.4, 3.6, 8.8, .025, 1.0, -Math.PI / 2);
@@ -224,16 +224,16 @@ function buildHub() {
     { id: 'wardrobe', x: 9.15, z: -3.85, r: 1.5, label: 'Armadio', desc: 'Cambia il colore dell\'abito' },
     { id: 'slot', x: 14.6, z: -3.95, r: 1.5, label: 'Slot machine', desc: 'Un\'arma a caso per 25 monete' },
     { id: 'trunk', x: 14.4, z: 1.55, r: 1.6, label: 'Baule delle classi', desc: 'Cambia classe' },
-    { id: 'door', x: 17.2, z: 0, r: 1.7, label: 'Vagone 1', desc: 'Carrozza passeggeri · 3 ondate' }
+    { id: 'door', x: 17.2, z: 0, r: 1.7, label: 'Vagone 1', desc: 'Carrozza passeggeri · 10 vagoni fino alla locomotiva' }
   ];
   L.start = { x: 6.6, z: 1.2 }; L.startYaw = Math.PI - .45; L.headY = 2.55;
   return L;
 }
 
 /* ---------- Vagone 1: carrozza passeggeri con il tetto squarciato ---------- */
-function buildWagon() {
+function buildPassenger() {
   const len = 64, hw = 6, L = newLevel('wagon', 0, len, -hw, hw), G = L.group, b = new Builder(), WH = 4.2;
-  L.name = 'Carrozza passeggeri'; L.tag = 'VAGONE / 01'; L.roofOpen = true; L.rainZ = 3.7; L.moonK = .8; L.hemiK = .38; L.obj = 'Sopravvivi alle ondate e apri la porta del Vagone 2';
+  wagonInfo(L, 1); L.roofOpen = true; L.rainZ = 3.7; L.moonK = .8; L.hemiK = .38; L.spawnMode = 'roof'; L.dropY = 7.5;
   TEX.stone.map.repeat.set(16, 3); TEX.stone.rough.repeat.set(16, 3); TEX.stone.bump.repeat.set(16, 3);
   plane(L, MAT.stoneFloor, len, hw * 2, len / 2, 0, 0, -Math.PI / 2);
   buildShell(L, hw);
@@ -316,7 +316,7 @@ function buildWagon() {
   const lamp = bx(G, MAT.neonRed, .06, .12, .6, len - .08, 3.5, 0, false);
   const lampL = addLight(L, len - .6, 3.4, 0, 0xff4a3a, 1.4, 5);
   L.exit = { x: len - .9, z: 0, leaves: [leafA, leafB], open: 0, target: 0, lamp, lampL };
-  plane(L, new THREE.MeshStandardMaterial({ map: signTexture('VAGONE 2', 'CHIUSO'), roughness: .5, emissive: lin(0x3a2a10), emissiveIntensity: .6 }), 1.6, .6, len - .08, 4.0 - .05, 0, 0, -Math.PI / 2, false).position.y = 3.85;
+  plane(L, new THREE.MeshStandardMaterial({ map: signTexture('VAGONE 2', WAGONS[1].sign), roughness: .5, emissive: lin(0x3a2a10), emissiveIntensity: .6 }), 1.6, .6, len - .08, 4.0 - .05, 0, 0, -Math.PI / 2, false).position.y = 3.85;
   addLight(L, 1.2, 3.0, 0, 0xffb060, 1.2, 6);
   for (let k = 1; k < 8; k++) pool(L, 8 * k, -hw + 1.6, k % 2 ? 3.8 : 2.4, 0xffa050, k % 2 ? .22 : .13);
   pool(L, len - 1.2, 0, 2.4, 0xff4a3a, .16); pool(L, 1.4, 0, 2.2, 0xffb060, .14);
@@ -352,7 +352,7 @@ function buildWagon() {
   neighborCar(L, -31.9, -.95); neighborCar(L, len + .95, len + 32);
   for (let x = 6; x < len - 4; x += 2.4) for (const z of [-3.2, -1, 1.2, 3.4]) { if (!insideAny(L, x, z, .7)) L.spawnPts.push([x, z]); }
   addSpare(L); addSpare(L);
-  L.inter = [{ id: 'exit', x: len - .9, z: 0, r: 1.8, label: 'Vagone 2', desc: 'Prosegui il viaggio' }];
+  L.inter = [{ id: 'exit', x: len - .9, z: 0, r: 1.8, label: 'Vagone 2', desc: WAGONS[1].name }];
   L.start = { x: 3.0, z: .6 }; L.startYaw = Math.PI / 2; L.headY = 2.45;
   return L;
 }

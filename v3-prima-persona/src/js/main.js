@@ -19,7 +19,7 @@ function loop(now) {
     }
   }
   updateLevelFx(dt);
-  Rain.update(dt); Wind.update(dt); Sparks.update(dt); Chunks.update(dt); Dust.update(dt); updateFX(dt);
+  Rain.update(dt); Wind.update(dt); Sparks.update(dt); Chunks.update(dt); Dust.update(dt); Puffs.update(dt); Storm.update(dt); updateFX(dt);
   // mouse libero (senza Pointer Lock): vicino ai bordi lo sguardo continua a girare
   if (STATE === 'play' && !UI.blocking()) LOOK.yaw += edgeTurn() * 2.4 * dt;
   updateFPCamera(dt); updateViewModel(dt);
@@ -37,7 +37,7 @@ function loop(now) {
 function boot() {
   try {
     buildTextures(); buildMaterials(); buildModelMaterials(); buildEnvironment();
-    Rain.init(); Wind.init(); Sparks.init(); Chunks.init(); Dust.init();
+    Rain.init(); Wind.init(); Sparks.init(); Chunks.init(); Dust.init(); Puffs.init(); Storm.init();
     updateView(); resize();
     UI.init();
     setLevel(buildHub());

@@ -18,7 +18,7 @@ const camTarget = new THREE.Vector3();
 /* ================= salvataggio ================= */
 // stessa chiave del prototipo pixel art: monete, bestiario e abito passano da una versione all'altra
 const SK = 'dungeon-train-save-v1';
-const save = { bank: 0, kills: {}, outfit: 0, cls: null, startWeapon: null, runs: 0, cleared: 0, quality: null, muted: false, sens: 'media' };
+const save = { bank: 0, kills: {}, outfit: 0, cls: null, startWeapon: null, runs: 0, cleared: 0, best: 0, wins: 0, quality: null, muted: false, sens: 'media' };
 try { const s = JSON.parse(localStorage.getItem(SK) || 'null'); if (s && typeof s === 'object') Object.assign(save, s); } catch (e) { }
 if (!save.kills || typeof save.kills !== 'object') save.kills = {};
 function persist() { try { localStorage.setItem(SK, JSON.stringify(save)); } catch (e) { } }
@@ -30,7 +30,8 @@ const SFX = {
   parry: [1300, 500, .16, 'triangle', .09], hurt: [170, 50, .22, 'sawtooth', .07], shoot: [620, 300, .07, 'triangle', .05],
   pick: [520, 980, .12, 'square', .045], tick: [700, 700, .03, 'square', .02], open: [200, 520, .3, 'triangle', .07],
   swing: [300, 160, .07, 'triangle', .045], flip: [140, 80, .14, 'square', .06], die: [300, 40, .4, 'sawtooth', .07],
-  land: [120, 50, .12, 'sine', .12], step: [95, 55, .06, 'triangle', .035], magic: [880, 1760, .12, 'sine', .04], ghost: [180, 360, .5, 'sine', .05]
+  land: [120, 50, .12, 'sine', .12], step: [95, 55, .06, 'triangle', .035], magic: [880, 1760, .12, 'sine', .04], ghost: [180, 360, .5, 'sine', .05],
+  zap: [2400, 300, .16, 'square', .04], whistle: [1180, 1320, .7, 'sine', .07], fire: [1800, 200, .28, 'noise', .16], blast: [3200, 260, .22, 'noise', .3], boom: [1400, 60, .6, 'noise', .42]
 };
 function audioInit() {
   if (AU.ctx) { if (AU.ctx.state === 'suspended') AU.ctx.resume(); return; }
@@ -57,7 +58,16 @@ function audioInit() {
 function sfx(n) {
   const ctx = AU.ctx; if (!ctx || save.muted) return; const d = SFX[n]; if (!d) return;
   try {
-    const t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+    const t = ctx.currentTime;
+    if (d[3] === 'noise') { // colpi e scoppi: rumore con un filtro che si chiude
+      const len = Math.ceil(ctx.sampleRate * d[2]), b = ctx.createBuffer(1, len, ctx.sampleRate), ch = b.getChannelData(0);
+      for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = b; f.type = 'lowpass';
+      f.frequency.setValueAtTime(d[0], t); f.frequency.exponentialRampToValueAtTime(Math.max(30, d[1]), t + d[2]);
+      g.gain.setValueAtTime(d[4], t); g.gain.exponentialRampToValueAtTime(.0001, t + d[2]);
+      s.connect(f).connect(g).connect(AU.master); s.start(t); s.stop(t + d[2] + .02); return;
+    }
+    const o = ctx.createOscillator(), g = ctx.createGain();
     o.type = d[3]; o.frequency.setValueAtTime(d[0], t); o.frequency.exponentialRampToValueAtTime(Math.max(30, d[1]), t + d[2]);
     g.gain.setValueAtTime(d[4], t); g.gain.exponentialRampToValueAtTime(.0001, t + d[2]);
     o.connect(g).connect(AU.master); o.start(t); o.stop(t + d[2] + .02);

@@ -32,12 +32,12 @@ const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(256, 256), .8, .55, HD
 bloom.enabled = Q.bloom;
 composer.addPass(bloom);
 const grade = new THREE.ShaderPass({
-  uniforms: { tDiffuse: { value: null }, exposure: { value: 1.25 }, tone: { value: HDR ? 1 : 0 }, time: { value: 0 }, vig: { value: 1 }, res: { value: new THREE.Vector2(1, 1) }, flash: { value: 0 }, sat: { value: 1.06 } },
+  uniforms: { tDiffuse: { value: null }, ab: { value: .01 }, exposure: { value: 1.25 }, tone: { value: HDR ? 1 : 0 }, time: { value: 0 }, vig: { value: 1 }, res: { value: new THREE.Vector2(1, 1) }, flash: { value: 0 }, sat: { value: 1.06 } },
   vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader: `uniform sampler2D tDiffuse;uniform float exposure,tone,time,vig,flash,sat;uniform vec2 res;varying vec2 vUv;
+  fragmentShader: `uniform sampler2D tDiffuse;uniform float exposure,tone,time,vig,flash,sat,ab;uniform vec2 res;varying vec2 vUv;
   vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
   float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
-  void main(){vec3 c=texture2D(tDiffuse,vUv).rgb;
+  void main(){vec2 dc=vUv-.5;float ca=ab*dot(dc,dc);vec3 c=vec3(texture2D(tDiffuse,vUv-dc*ca).r,texture2D(tDiffuse,vUv).g,texture2D(tDiffuse,vUv+dc*ca).b);
     if(tone>.5)c=aces(c*exposure);
     c=pow(max(c,0.),vec3(1./2.2));
     float l=dot(c,vec3(.299,.587,.114));
@@ -186,6 +186,139 @@ function signTexture(text, sub) {
   if (sub) { g.font = '500 15px "JetBrains Mono", monospace'; g.fillStyle = '#9ba4a6'; g.fillText(sub, 128, 76); }
   const t = toTex(c); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; return t;
 }
+// pannelli di legno dipinto (grigio chiaro: la tinta la dà il materiale). 512 px = un riquadro largo con due pannelli
+function panelTextures(seed) {
+  const R = mulberry(seed), S = 512, col = cvs(S, S), g = col.getContext('2d'), bmp = cvs(S, S), b = bmp.getContext('2d');
+  g.fillStyle = '#e4e4e4'; g.fillRect(0, 0, S, S); b.fillStyle = '#909090'; b.fillRect(0, 0, S, S);
+  for (let i = 0; i < 2; i++) {
+    const x0 = i * 256 + 26, y0 = 30, w = 204, h = S - 60;
+    g.fillStyle = 'rgba(0,0,0,.42)'; g.fillRect(x0 - 7, y0 - 7, w + 14, h + 14);
+    b.fillStyle = '#383838'; b.fillRect(x0 - 7, y0 - 7, w + 14, h + 14);
+    for (let k = 0; k < 10; k++) { const v = 200 - k * 9; b.fillStyle = `rgb(${v},${v},${v})`; b.fillRect(x0 + k, y0 + k, w - k * 2, h - k * 2); }
+    g.fillStyle = '#ececec'; g.fillRect(x0, y0, w, h);
+    g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x0, y0, w, 4); g.fillRect(x0, y0, 4, h);
+    g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x0, y0 + h - 4, w, 4); g.fillRect(x0 + w - 4, y0, 4, h);
+    g.strokeStyle = 'rgba(0,0,0,.14)'; g.lineWidth = 1; g.strokeRect(x0 + 14, y0 + 14, w - 28, h - 28);
+  }
+  for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(${R() < .5 ? '255,255,255' : '0,0,0'},${.02 + R() * .04})`; g.fillRect(R() * S, R() * S, 1, 6 + R() * 30); }
+  return { map: toTex(col), bump: toTex(bmp, false) };
+}
+// lamiere rivettate con graffi e sporco; 512 px = 2 m
+function metalTextures(seed) {
+  const R = mulberry(seed), S = 512, col = cvs(S, S), g = col.getContext('2d'), bmp = cvs(S, S), b = bmp.getContext('2d'), rou = cvs(S, S), r = rou.getContext('2d');
+  g.fillStyle = '#d0d0d0'; g.fillRect(0, 0, S, S); b.fillStyle = '#8a8a8a'; b.fillRect(0, 0, S, S); r.fillStyle = '#9a9a9a'; r.fillRect(0, 0, S, S);
+  for (let py = 0; py < 2; py++) for (let px = 0; px < 2; px++) {
+    const x0 = px * 256, y0 = py * 256, v = 196 + R() * 40 | 0;
+    g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(x0 + 3, y0 + 3, 250, 250);
+    const rv = 120 + R() * 80 | 0; r.fillStyle = `rgb(${rv},${rv},${rv})`; r.fillRect(x0 + 3, y0 + 3, 250, 250);
+    const gr = g.createLinearGradient(0, y0, 0, y0 + 256); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(40,30,20,.25)'); g.fillStyle = gr; g.fillRect(x0 + 3, y0 + 3, 250, 250);
+    for (let k = 0; k < 8; k++) { const t = 12 + k * 33; for (const [x, y] of [[x0 + t, y0 + 12], [x0 + t, y0 + 244], [x0 + 12, y0 + t], [x0 + 244, y0 + t]]) {
+      b.fillStyle = '#e8e8e8'; b.beginPath(); b.arc(x, y, 4.5, 0, TAU); b.fill(); b.fillStyle = '#ffffff'; b.beginPath(); b.arc(x - 1, y - 1, 2.2, 0, TAU); b.fill();
+      g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(x + 1, y + 1.5, 4.5, 0, TAU); g.fill(); g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.arc(x - 1, y - 1, 3, 0, TAU); g.fill();
+    } }
+  }
+  g.fillStyle = 'rgba(0,0,0,.55)'; b.fillStyle = '#303030';
+  for (const t of [0, 256]) { g.fillRect(t, 0, 3, S); g.fillRect(0, t, S, 3); b.fillRect(t, 0, 3, S); b.fillRect(0, t, S, 3); }
+  for (let i = 0; i < 70; i++) { const x = R() * S, y = R() * S, l = 6 + R() * 40, a = R() * TAU; g.strokeStyle = `rgba(255,255,255,${.06 + R() * .1})`; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); r.strokeStyle = 'rgba(60,60,60,.5)'; r.beginPath(); r.moveTo(x, y); r.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); r.stroke(); }
+  for (let i = 0; i < 10; i++) { const x = R() * S, y = R() * S, rr = 20 + R() * 60, gr = g.createRadialGradient(x, y, 0, x, y, rr); gr.addColorStop(0, 'rgba(60,40,20,.22)'); gr.addColorStop(1, 'rgba(60,40,20,0)'); g.fillStyle = gr; g.fillRect(x - rr, y - rr, rr * 2, rr * 2); }
+  return { map: toTex(col), bump: toTex(bmp, false), rough: toTex(rou, false) };
+}
+// carta da parati damascata (grigia, tinta dal materiale); 256 px = 0,8 m
+function damaskTexture(seed) {
+  const S = 256, c = cvs(S, S), g = c.getContext('2d');
+  g.fillStyle = '#b8b8b8'; g.fillRect(0, 0, S, S);
+  for (let x = 0; x < S; x += 32) { g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(x, 0, 2, S); }
+  const fleur = (cx, cy, s) => {
+    g.save(); g.translate(cx, cy); g.scale(s, s); g.fillStyle = 'rgba(255,255,255,.5)';
+    for (const m of [1, -1]) { g.beginPath(); g.moveTo(0, -46); g.bezierCurveTo(m * 30, -30, m * 34, 0, m * 10, 14); g.bezierCurveTo(m * 26, 26, m * 22, 44, 0, 50); g.lineTo(0, 30); g.bezierCurveTo(m * 10, 22, m * 6, 6, 0, -10); g.closePath(); g.fill(); }
+    g.beginPath(); g.ellipse(0, -2, 6, 16, 0, 0, TAU); g.fill();
+    g.fillStyle = 'rgba(0,0,0,.12)'; g.beginPath(); g.ellipse(0, -2, 3, 9, 0, 0, TAU); g.fill();
+    g.restore();
+  };
+  for (const [x, y] of [[128, 128], [0, 0], [256, 0], [0, 256], [256, 256]]) fleur(x, y, 1);
+  for (const [x, y] of [[0, 128], [256, 128], [128, 0], [128, 256]]) fleur(x, y, .45);
+  return toTex(c);
+}
+// pavimento a scacchi lucido (ristorante): 512 px = 2 m, piastrelle da 50 cm
+function checkerTextures() {
+  const R = mulberry(41), S = 512, col = cvs(S, S), g = col.getContext('2d'), bmp = cvs(S, S), b = bmp.getContext('2d'), rou = cvs(S, S), r = rou.getContext('2d');
+  b.fillStyle = '#404040'; b.fillRect(0, 0, S, S); g.fillStyle = '#222'; g.fillRect(0, 0, S, S);
+  for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+    const light = (x + y) % 2 === 0, v = light ? 214 + R() * 20 : 24 + R() * 14;
+    g.fillStyle = `rgb(${v | 0},${v * .96 | 0},${v * .88 | 0})`; g.fillRect(x * 128 + 2, y * 128 + 2, 124, 124);
+    b.fillStyle = '#e0e0e0'; b.fillRect(x * 128 + 3, y * 128 + 3, 122, 122);
+    const rv = light ? 70 + R() * 50 : 40 + R() * 40; r.fillStyle = `rgb(${rv | 0},${rv | 0},${rv | 0})`; r.fillRect(x * 128, y * 128, 128, 128);
+  }
+  for (let i = 0; i < 1500; i++) { g.fillStyle = `rgba(${R() < .5 ? '255,255,255' : '40,30,20'},${.03 + R() * .06})`; g.fillRect(R() * S, R() * S, 1 + R() * 2, 1 + R() * 2); }
+  for (let i = 0; i < 8; i++) { const x = R() * S, y = R() * S, rr = 30 + R() * 70, gr = g.createRadialGradient(x, y, 0, x, y, rr); gr.addColorStop(0, 'rgba(50,35,20,.25)'); gr.addColorStop(1, 'rgba(50,35,20,0)'); g.fillStyle = gr; g.fillRect(x - rr, y - rr, rr * 2, rr * 2); }
+  return { map: toTex(col), bump: toTex(bmp, false), rough: toTex(rou, false) };
+}
+// passatoia: u lungo il vagone, v di traverso (bordi in alto e in basso)
+function carpetTexture(base, border, accent) {
+  const W = 512, H = 128, c = cvs(W, H), g = c.getContext('2d'), R = mulberry(base.length * 7);
+  g.fillStyle = base; g.fillRect(0, 0, W, H);
+  g.fillStyle = border; g.fillRect(0, 0, W, 16); g.fillRect(0, H - 16, W, 16);
+  g.fillStyle = accent; g.fillRect(0, 18, W, 3); g.fillRect(0, H - 21, W, 3);
+  for (let x = 0; x < W; x += 16) { g.fillStyle = accent; g.fillRect(x + 4, 5, 8, 6); g.fillRect(x + 4, H - 11, 8, 6); }
+  for (let x = 64; x < W; x += 128) {
+    g.save(); g.translate(x, H / 2); g.strokeStyle = accent; g.lineWidth = 3; g.beginPath(); g.moveTo(-34, 0); g.lineTo(0, -28); g.lineTo(34, 0); g.lineTo(0, 28); g.closePath(); g.stroke();
+    g.fillStyle = border; g.beginPath(); g.moveTo(-16, 0); g.lineTo(0, -13); g.lineTo(16, 0); g.lineTo(0, 13); g.closePath(); g.fill();
+    g.fillStyle = accent; g.fillRect(-3, -3, 6, 6); g.restore();
+  }
+  for (let i = 0; i < 2500; i++) { g.fillStyle = `rgba(${R() < .5 ? '255,255,255' : '0,0,0'},${.03 + R() * .05})`; g.fillRect(R() * W, R() * H, 1, 1 + R() * 2); }
+  return toTex(c);
+}
+// lamiera striata (diamanti in rilievo): 256 px = 0,5 m
+function diamondTextures() {
+  const R = mulberry(17), S = 256, col = cvs(S, S), g = col.getContext('2d'), bmp = cvs(S, S), b = bmp.getContext('2d');
+  g.fillStyle = '#a8a8a8'; g.fillRect(0, 0, S, S); b.fillStyle = '#707070'; b.fillRect(0, 0, S, S);
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    const cx = x * 32 + 16, cy = y * 32 + 16, a = (x + y) % 2 ? .7 : -.7;
+    for (const [bb, cl, ww] of [[b, '#e8e8e8', 5], [g, 'rgba(255,255,255,.35)', 4]]) { bb.save(); bb.translate(cx, cy); bb.rotate(a); bb.fillStyle = cl; bb.beginPath(); bb.ellipse(0, 0, 13, ww, 0, 0, TAU); bb.fill(); bb.restore(); }
+  }
+  for (let i = 0; i < 12; i++) { const x = R() * S, y = R() * S, rr = 20 + R() * 50, gr = g.createRadialGradient(x, y, 0, x, y, rr); gr.addColorStop(0, 'rgba(30,25,20,.3)'); gr.addColorStop(1, 'rgba(30,25,20,0)'); g.fillStyle = gr; g.fillRect(x - rr, y - rr, rr * 2, rr * 2); }
+  return { map: toTex(col), bump: toTex(bmp, false) };
+}
+// terra delle aiuole con sassolini e ciuffi d'erba
+function soilTexture() {
+  const R = mulberry(23), S = 256, c = cvs(S, S), g = c.getContext('2d');
+  g.fillStyle = '#3a2a1c'; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 2600; i++) { const v = R(); g.fillStyle = v < .5 ? `rgba(20,12,6,${.3 + R() * .4})` : `rgba(110,80,50,${.15 + R() * .3})`; g.fillRect(R() * S, R() * S, 1 + R() * 3, 1 + R() * 3); }
+  for (let i = 0; i < 90; i++) { const x = R() * S, y = R() * S; g.strokeStyle = `rgba(${60 + R() * 60 | 0},${110 + R() * 70 | 0},${40 + R() * 30 | 0},.8)`; g.lineWidth = 1.2; for (let k = 0; k < 5; k++) { g.beginPath(); g.moveTo(x, y); g.lineTo(x + (R() - .5) * 8, y - 4 - R() * 8); g.stroke(); } }
+  return toTex(c);
+}
+// mattoni refrattari annneriti
+function brickTextures() {
+  const R = mulberry(29), S = 256, col = cvs(S, S), g = col.getContext('2d'), bmp = cvs(S, S), b = bmp.getContext('2d');
+  g.fillStyle = '#2a201c'; g.fillRect(0, 0, S, S); b.fillStyle = '#303030'; b.fillRect(0, 0, S, S);
+  for (let y = 0; y < 8; y++) for (let x = -1; x < 4; x++) {
+    const bx_ = x * 64 + (y % 2 ? 32 : 0) + 2, by = y * 32 + 2, v = .7 + R() * .4;
+    g.fillStyle = `rgb(${120 * v | 0},${52 * v | 0},${38 * v | 0})`; g.fillRect(bx_, by, 60, 28); b.fillStyle = '#d0d0d0'; b.fillRect(bx_ + 1, by + 1, 58, 26);
+  }
+  const gr = g.createLinearGradient(0, 0, 0, S); gr.addColorStop(0, 'rgba(10,8,6,.55)'); gr.addColorStop(.5, 'rgba(10,8,6,.1)'); gr.addColorStop(1, 'rgba(10,8,6,.3)'); g.fillStyle = gr; g.fillRect(0, 0, S, S);
+  return { map: toTex(col), bump: toTex(bmp, false) };
+}
+// parquet a spina di pesce
+function parquetTexture() {
+  const R = mulberry(31), S = 512, c = cvs(S, S), g = c.getContext('2d');
+  g.fillStyle = '#2a170c'; g.fillRect(0, 0, S, S);
+  const L = 96, W = 24;
+  for (let y = -L; y < S + L; y += W * 2) for (let x = -L; x < S + L; x += L) for (const s of [0, 1]) {
+    g.save(); g.translate(x + (s ? W : 0), y + (s ? 0 : W)); g.rotate(s ? Math.PI / 4 : -Math.PI / 4);
+    const k = .75 + R() * .4; g.fillStyle = `rgb(${120 * k | 0},${74 * k | 0},${42 * k | 0})`; g.fillRect(0, 0, L * .72, W * .72 - 1);
+    for (let j = 0; j < 3; j++) { g.fillStyle = `rgba(40,20,8,${.15 + R() * .15})`; g.fillRect(0, 2 + R() * (W * .7 - 4), L * .72, 1); }
+    g.restore();
+  }
+  return toTex(c);
+}
+// carbone: nero con schegge lucide
+function coalTexture() {
+  const R = mulberry(37), S = 256, c = cvs(S, S), g = c.getContext('2d');
+  g.fillStyle = '#0c0b0b'; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 700; i++) { const x = R() * S, y = R() * S, s = 2 + R() * 7, v = 18 + R() * 30 | 0; g.fillStyle = `rgb(${v},${v},${v + 2})`; g.beginPath(); g.moveTo(x, y); g.lineTo(x + s, y + R() * s); g.lineTo(x + R() * s, y + s); g.fill(); }
+  for (let i = 0; i < 160; i++) { g.fillStyle = `rgba(180,190,210,${.2 + R() * .4})`; g.fillRect(R() * S, R() * S, 1, 1); }
+  return toTex(c);
+}
 const TEX = {};
 function buildTextures() {
   TEX.stone = stoneTextures(11);
@@ -198,6 +331,9 @@ function buildTextures() {
   TEX.glow = glowTexture();
   TEX.shaft = shaftTexture();
   TEX.glass = glassTexture();
+  TEX.panel = panelTextures(3); TEX.metal = metalTextures(13); TEX.damask = damaskTexture(); TEX.checker = checkerTextures();
+  TEX.diamond = diamondTextures(); TEX.soil = soilTexture(); TEX.brick = brickTextures(); TEX.parquet = parquetTexture(); TEX.coal = coalTexture();
+  TEX.carpetRed = carpetTexture('#5a1420', '#2a0a10', '#c8963c'); TEX.carpetBlue = carpetTexture('#1a2550', '#0c1230', '#b8a060'); TEX.carpetGreen = carpetTexture('#173a2a', '#0a1a12', '#c8a050');
 }
 
 /* ---------- materiali ---------- */
@@ -226,6 +362,30 @@ function buildMaterials() {
     ground: new THREE.MeshStandardMaterial({ map: TEX.gravel, roughness: 1, color: lin(0x8a8a8a) }),
     leaf: new THREE.MeshStandardMaterial({ map: TEX.leaf, alphaTest: .5, side: THREE.DoubleSide, roughness: .8 }),
     land: new THREE.MeshBasicMaterial({ map: TEX.land, fog: false })
+  });
+  // pareti con texture in coordinate del mondo (vedi Builder.box): pannelli, carta da parati, lamiere
+  const tiled = (m, tile, off) => { m.userData.tile = tile; m.userData.toff = off || 0; return m; };
+  const panel = (hex, rough = .72, metal = .1) => tiled(std(hex, rough, metal, { map: TEX.panel.map, bumpMap: TEX.panel.bump, bumpScale: .012 }), 1.5, -1.2);
+  const plate = (hex, rough = .5, metal = .65) => tiled(std(hex, rough, metal, { map: TEX.metal.map, bumpMap: TEX.metal.bump, bumpScale: .02, roughnessMap: TEX.metal.rough }), 2);
+  MAT.teal = panel(0x2c4c4e, .7, .15); MAT.tealDark = panel(0x1c3234, .78, .1);
+  Object.assign(MAT, {
+    wallNavy: panel(0x1e2a4a, .7, .1), wallCream: panel(0xcfc3a6, .7, .05), ceilCream: panel(0x4e4232, .75, .05), wallOlive: panel(0x3a4232, .75, .1),
+    paperRed: tiled(std(0x7a2230, .85, 0, { map: TEX.damask }), .8, -1.2), paperGreen: tiled(std(0x1f4a36, .85, 0, { map: TEX.damask }), .8, -1.2), paperGold: tiled(std(0x8a6a3a, .8, .1, { map: TEX.damask }), .8, -1.2),
+    plate: plate(0x6a6e6c), plateDark: plate(0x3a3e40, .55, .7), plateGreen: plate(0x3e4a3a, .6, .5), plateCopper: plate(0xb07040, .38, .85), plateRust: plate(0x6a4a34, .7, .45),
+    brick: tiled(std(0xffffff, .9, 0, { map: TEX.brick.map, bumpMap: TEX.brick.bump, bumpScale: .03 }), 1.2),
+    ironFrame: std(0x23302b, .45, .7), whiteFrame: std(0xd8d4c8, .5, .3), soot2: std(0x141210, .95),
+    floorChecker: new THREE.MeshStandardMaterial({ map: TEX.checker.map, bumpMap: TEX.checker.bump, bumpScale: .02, roughnessMap: TEX.checker.rough, roughness: .55, metalness: .05, envMapIntensity: 1.4 }),
+    floorDiamond: new THREE.MeshStandardMaterial({ map: TEX.diamond.map, bumpMap: TEX.diamond.bump, bumpScale: .03, color: lin(0x6a6e70), roughness: .45, metalness: .6, envMapIntensity: 1.0 }),
+    floorSoot: new THREE.MeshStandardMaterial({ map: TEX.diamond.map, bumpMap: TEX.diamond.bump, bumpScale: .03, color: lin(0x3a3634), roughness: .6, metalness: .45, envMapIntensity: .8 }),
+    floorParquet: new THREE.MeshStandardMaterial({ map: TEX.parquet, roughness: .38, metalness: 0, envMapIntensity: 1.1 }),
+    floorPlank: new THREE.MeshStandardMaterial({ map: TEX.woodDark, color: lin(0xb0a090), roughness: .8, envMapIntensity: .5 }),
+    soil: new THREE.MeshStandardMaterial({ map: TEX.soil, roughness: .95 }),
+    coal: new THREE.MeshStandardMaterial({ map: TEX.coal, color: lin(0x707070), roughness: .45, metalness: .15, envMapIntensity: .7 }),
+    carpetRed: new THREE.MeshStandardMaterial({ map: TEX.carpetRed, roughness: .95 }), carpetBlue: new THREE.MeshStandardMaterial({ map: TEX.carpetBlue, roughness: .95 }), carpetGreen: new THREE.MeshStandardMaterial({ map: TEX.carpetGreen, roughness: .95 }),
+    gilt: std(0xd8a84a, .28, .95), marble: std(0xe8e2d6, .25, .05, { envMapIntensity: 1.2 }), cloth: std(0xf2eee4, .9), bottleG: emis(0x2a6a3a, 0x0a3a14, .6, { roughness: .15, metalness: .2 }), bottleA: emis(0x8a4a1a, 0x4a1a04, .6, { roughness: .15 }),
+    leafGreen: std(0x2e5a2a, .8, 0, { side: THREE.DoubleSide }), leafDark: std(0x1e3a1c, .85, 0, { side: THREE.DoubleSide }), bloomPink: emis(0xff9ac8, 0xff4aa0, 2.4), bloomTeal: emis(0x9afff0, 0x2ae0c8, 2.6),
+    furnace: emis(0xffb060, 0xff5a10, 4), clere: emis(0x080c14, 0x0e1a2e, .55), piano: std(0x0c0b0d, .18, .3, { envMapIntensity: 1.4 }), keys: std(0xf2eee0, .4), gauge: emis(0xf4ecd6, 0x6a5a3a, .4), alarm: emis(0xff8a80, 0xff2a1a, 4), coldLamp: emis(0xeaf4ff, 0x9ac8ff, 4), purpleLamp: emis(0xd8c0ff, 0x9a6aff, 3.5),
+    glassRoof: new THREE.MeshStandardMaterial({ map: (t => { t.needsUpdate = true; t.repeat.set(18, 2.5); return t; })(TEX.glass.clone()), color: lin(0x9fb6c8), transparent: true, opacity: .32, roughness: .05, envMapIntensity: 1.4, depthWrite: false, side: THREE.DoubleSide })
   });
 }
 const OUTFITS = [['Rosso vagone', 0x9b2f35, 0x6a1f26], ['Blu notte', 0x2f4a8a, 0x1f3160], ['Verde bottiglia', 0x2f6a4a, 0x1f4a33], ['Ottone', 0xb88a2e, 0x7d5c1c], ['Nero carbone', 0x3a3540, 0x24202a], ['Rosa salotto', 0xb0567e, 0x7a3a57]];
@@ -283,6 +443,7 @@ class Builder {
   constructor() { this.parts = new Map(); }
   box(mat, x, y, z, w, h, d, rotY) {
     const g = new THREE.BoxGeometry(w, h, d); if (rotY) g.rotateY(rotY); g.translate(x, y + h / 2, z);
+    if (mat.userData.tile) worldUV(g, mat.userData.tile, mat.userData.toff);
     let a = this.parts.get(mat); if (!a) { a = []; this.parts.set(mat, a); } a.push(g); return this;
   }
   geo(mat, g) { let a = this.parts.get(mat); if (!a) { a = []; this.parts.set(mat, a); } a.push(g); return this; }
@@ -295,6 +456,16 @@ class Builder {
       parent.add(mesh); out.push(mesh);
     }
     this.parts.clear(); return out;
+  }
+}
+// coordinate di texture prese dalla posizione nel mondo: la stessa parete divisa in tanti blocchi resta continua
+function worldUV(g, tile, off = 0) {
+  const p = g.attributes.position, n = g.attributes.normal, uv = g.attributes.uv;
+  for (let i = 0; i < p.count; i++) {
+    const ax = Math.abs(n.getX(i)), ay = Math.abs(n.getY(i)), az = Math.abs(n.getZ(i));
+    if (ax >= ay && ax >= az) uv.setXY(i, p.getZ(i) / tile, (p.getY(i) + off) / tile);
+    else if (ay >= az) uv.setXY(i, p.getX(i) / tile, p.getZ(i) / tile);
+    else uv.setXY(i, p.getX(i) / tile, (p.getY(i) + off) / tile);
   }
 }
 const GEO = {};
@@ -391,6 +562,11 @@ const Sparks = {
       this.col[i * 3] = c.r * 2; this.col[i * 3 + 1] = c.g * 2; this.col[i * 3 + 2] = c.b * 2;
     }
   },
+  put(x, y, z, vx, vy, vz, col, life, g = 0) {
+    const i = this.i = (this.i + 1) % this.max, P = this.p[i], c = col instanceof THREE.Color ? col : lin(col);
+    P.x = x; P.y = y; P.z = z; P.vx = vx; P.vy = vy; P.vz = vz; P.l = P.L = life; P.g = g;
+    this.col[i * 3] = c.r * 2; this.col[i * 3 + 1] = c.g * 2; this.col[i * 3 + 2] = c.b * 2;
+  },
   splash(x, z) { const i = this.i = (this.i + 1) % this.max, P = this.p[i]; P.x = x; P.y = .03; P.z = z; P.vx = 0; P.vy = .6; P.vz = 0; P.l = P.L = .18; P.g = 4; this.col[i * 3] = .25; this.col[i * 3 + 1] = .3; this.col[i * 3 + 2] = .36; },
   update(dt) {
     for (let i = 0; i < this.max; i++) {
@@ -455,4 +631,78 @@ function shaft(parent, x, y, z, w, h, rotY, tilt, op, col) {
 function glowSprite(parent, x, y, z, s, col, op = .8) {
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow, color: lin(col), transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false }));
   sp.position.set(x, y, z); sp.scale.setScalar(s); parent.add(sp); return sp;
+}
+
+/* ---------- vapore e fumo: sprite morbidi che salgono e si allargano ---------- */
+const Puffs = {
+  max: 70, i: 0, p: [],
+  init() {
+    for (let i = 0; i < this.max; i++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow, color: lin(0xd8dde2), transparent: true, opacity: 0, depthWrite: false }));
+      s.visible = false; s.renderOrder = 3; scene.add(s); this.p.push({ s, l: 0 });
+    }
+  },
+  emit(x, y, z, n = 1, size = 1, col = 0xd8dde2, op = .28, vx = 0) {
+    for (let k = 0; k < n; k++) {
+      const P = this.p[this.i = (this.i + 1) % this.max];
+      Object.assign(P, { x: x + rnd(-.2, .2), y: y + rnd(-.1, .1), z: z + rnd(-.2, .2), vx: vx + rnd(-.3, .3), vy: rnd(.6, 1.3), vz: rnd(-.3, .3), l: rnd(1.2, 2), size: size * rnd(.7, 1.2), op });
+      P.L = P.l; P.s.material.color.copy(lin(col)); P.s.visible = true;
+    }
+  },
+  update(dt) {
+    for (const P of this.p) {
+      if (P.l <= 0) continue;
+      P.l -= dt; if (P.l <= 0) { P.s.visible = false; continue; }
+      P.x += P.vx * dt; P.y += P.vy * dt; P.z += P.vz * dt; P.vy *= Math.pow(.6, dt);
+      const k = 1 - P.l / P.L; P.s.position.set(P.x, P.y, P.z); P.s.scale.setScalar(P.size * (.5 + k * 1.6));
+      P.s.material.opacity = P.op * Math.min(1, k * 6) * (1 - k);
+    }
+  },
+  reset() { for (const P of this.p) { P.l = 0; P.s.visible = false; } }
+};
+
+/* ---------- temporale: lampi che illuminano tutto, fulmini all'orizzonte, tuono in ritardo ---------- */
+const Storm = {
+  t: 6, f: 0, seq: null, bolt: null, boltT: 0, moonS: null,
+  init() {
+    this.mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(4, 4.6, 6), fog: false });
+    // luna: un disco con alone, visibile dal tetto aperto
+    this.moonS = new THREE.Group();
+    const disc = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow, color: new THREE.Color(2.2, 2.3, 2.5), fog: false, depthWrite: false })); disc.scale.setScalar(9);
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow, color: lin(0x8aa0c8), fog: false, transparent: true, opacity: .35, depthWrite: false, blending: THREE.AdditiveBlending })); halo.scale.setScalar(46);
+    this.moonS.add(halo, disc); scene.add(this.moonS);
+  },
+  strike() {
+    this.seq = [0, .08, .2, .34].map((t, i) => ({ t, k: i === 2 ? .6 : 1 })); this.st = 0;
+    if (this.bolt) { scene.remove(this.bolt); this.bolt = null; }
+    const g = new THREE.Group(), sd = Math.random() < .5 ? -1 : 1, x0 = camTarget.x + rnd(-45, 45), z0 = sd * rnd(52, 60);
+    let x = x0, y = 46, z = z0;
+    const seg = (ax, ay, bx_, by, w) => { const l = Math.hypot(bx_ - ax, by - ay), m = new THREE.Mesh(boxGeo(1, 1, 1), this.mat); m.scale.set(w, l, w); m.position.set((ax + bx_) / 2, (ay + by) / 2, z); m.rotation.z = -Math.atan2(bx_ - ax, by - ay); g.add(m); };
+    while (y > 0) { const nx = x + rnd(-3.5, 3.5), ny = y - rnd(3, 6); seg(x, y, nx, ny, .45); if (Math.random() < .3) { let bx2 = nx, by2 = ny; for (let k = 0; k < 3; k++) { const cx = bx2 + rnd(-4, 4), cy = by2 - rnd(2, 4); seg(bx2, by2, cx, cy, .22); bx2 = cx; by2 = cy; } } x = nx; y = ny; }
+    g.visible = false; scene.add(g); this.bolt = g; this.boltT = .45;
+    const far = Math.abs(z0 - camTarget.z) / 60; setTimeout(() => thunder(far), 300 + far * 900 + Math.random() * 500);
+  },
+  update(dt) {
+    this.t -= dt; if (this.t <= 0 && STATE !== 'title') { this.t = rnd(9, 20); this.strike(); }
+    let f = 0;
+    if (this.seq) { this.st += dt; for (const s of this.seq) { const d = this.st - s.t; if (d >= 0 && d < .07) f = Math.max(f, s.k * (1 - d / .07)); } if (this.st > .5) this.seq = null; }
+    this.f += (f - this.f) * Math.min(1, dt * 30);
+    if (this.bolt) { this.boltT -= dt; this.bolt.visible = this.f > .15; if (this.boltT <= 0) { scene.remove(this.bolt); this.bolt = null; } }
+    const L = level, F = this.f * (L && L.stormK !== undefined ? L.stormK : 1);
+    moon.intensity = (L ? L.moonK || 1 : 1) * (1 + F * 3.2); hemi.intensity = (L ? L.hemiK || .5 : .5) * (1 + F * 1.6);
+    if (L) for (const l of L.fx.lands) l.mat.color.setScalar(1 + F * 2.2);
+    this.moonS.position.copy(camTarget).addScaledVector(MOON_DIR, 150);
+  }
+};
+// tuono: rumore filtrato che rimbomba, più cupo se il lampo è lontano
+function thunder(far) {
+  const ctx = AU.ctx; if (!ctx || save.muted) return;
+  try {
+    const t = ctx.currentTime, len = ctx.sampleRate * 3, b = ctx.createBuffer(1, len, ctx.sampleRate), d = b.getChannelData(0); let last = 0;
+    for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; last = (last + .04 * w) / 1.04; d[i] = last * 6 * (1 + .6 * Math.sin(i / ctx.sampleRate * 9)); }
+    const s = ctx.createBufferSource(); s.buffer = b;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(900 - far * 400, t); lp.frequency.exponentialRampToValueAtTime(120, t + 2.5);
+    const g = ctx.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.55 - far * .25, t + .08); g.gain.exponentialRampToValueAtTime(.0001, t + 2.9);
+    s.connect(lp).connect(g).connect(AU.master); s.start(t); s.stop(t + 3);
+  } catch (e) { }
 }

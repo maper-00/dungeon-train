@@ -12,7 +12,11 @@ Il prototipo esiste in tre versioni. Sono tutte pagine HTML autonome: basta scar
 
 ## Cosa c'è già
 
-Cabina letto con scelta della classe (Cavaliere, Ranger, Mago), bestiario, armadio e slot machine per le armi. Poi il Vagone 1: tre ondate di nemici (ratti, scheletri, arcieri), il mini boss Bigliettaio Spettrale e un forziere di monete alla fine. Il Vagone 2 non è ancora fatto.
+Cabina letto con scelta della classe (Cavaliere, Ranger, Mago), bestiario, armadio e slot machine per le armi.
+
+Nella versione in prima persona (v3) la corsa attraversa dieci vagoni a tema fino alla locomotiva: carrozza passeggeri, ristorante, bagagliaio, vagone letto, serra, vagone del carbone, vagone blindato, officina, salone di prima classe e locomotiva. Ci sono 13 creature (con tre boss: Bigliettaio Spettrale, Regina delle Serre e il Capotreno), 13 tipi di armi, una bottega ogni tre vagoni e il freno d'emergenza da tirare alla fine. I dettagli sono in `v3-prima-persona/LEGGIMI.md`.
+
+La v1 pixel art e la v2 dall'alto si fermano al Vagone 1.
 
 ## Sorgenti
 

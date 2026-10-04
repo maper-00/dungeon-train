@@ -44,20 +44,27 @@ button{font:inherit;color:inherit}
 #obj{left:50%;transform:translateX(-50%);top:calc(62px + env(safe-area-inset-top,0px));text-align:center;width:min(440px,70vw)}
 #obj .k{font-family:var(--mono);letter-spacing:.26em;color:var(--dim);font-size:10px}
 #objSub{margin-top:4px;font-size:12px;color:var(--ink)}
-#toasts{left:50%;transform:translateX(-50%);top:calc(104px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;align-items:center;gap:6px;width:min(520px,90vw)}
+#toasts{left:50%;transform:translateX(-50%);top:calc(104px + env(safe-area-inset-top,0px));z-index:1;display:flex;flex-direction:column;align-items:center;gap:6px;width:min(520px,90vw)}
 .toast{padding:7px 12px;font-size:12px;animation:tin .25s ease-out;max-width:100%;text-align:center}
 @keyframes tin{from{opacity:0;transform:translateY(-6px)}}
 
 /* in alto a destra: mappa del treno */
-#tr{right:calc(16px + env(safe-area-inset-right,0px));top:calc(14px + env(safe-area-inset-top,0px));width:156px;padding:14px 12px 10px}
-#map{display:flex;gap:5px;justify-content:center;align-items:center;height:30px}
-#map .w{width:15px;height:15px;border:1px dashed rgba(236,230,217,.22);border-radius:3px;flex:none}
-#map .w.home{border:1px solid var(--line);background:rgba(255,255,255,.07)}
+#tr{right:calc(16px + env(safe-area-inset-right,0px));top:calc(14px + env(safe-area-inset-top,0px));width:196px;padding:14px 12px 10px;box-sizing:border-box}
+#map{display:flex;gap:4px;justify-content:center;align-items:center;height:26px}
+#map .w{position:relative;width:11px;height:11px;border:1px dashed rgba(236,230,217,.22);border-radius:2px;flex:none;box-sizing:border-box}
+#map .w.home{width:13px;height:13px;border:1px solid var(--line);background:rgba(255,255,255,.07)}
+#map .w.seen{border:1px solid rgba(236,230,217,.3)}
+#map .w.boss{border-color:rgba(226,87,95,.75)}
+#map .w.shop::after{content:"";position:absolute;left:50%;top:-6px;width:3px;height:3px;margin-left:-1.5px;border-radius:50%;background:var(--amber)}
 #map .w.done{border:1px solid var(--teal);background:rgba(98,212,199,.14)}
 #map .w.cur{border:1px solid var(--amber);background:rgba(233,180,92,.28);box-shadow:0 0 12px rgba(233,180,92,.5)}
-#map .link{width:6px;height:1px;background:rgba(236,230,217,.25);flex:none}
-#map .more{color:var(--dim);font-size:12px;margin-left:2px}
-#mapTxt{font-size:10px;color:var(--dim);text-align:center;margin-top:10px;font-family:var(--mono)}
+#map .link{display:none}
+#mapTxt{font-size:10px;color:var(--dim);text-align:center;margin-top:8px;font-family:var(--mono);line-height:1.4}
+#bossbar{left:50%;transform:translateX(-50%);top:calc(56px + env(safe-area-inset-top,0px));width:min(420px,70vw);padding:8px 14px 10px;text-align:center;border-top:2px solid var(--red)}
+#bossName{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:#ffb0a8;font-weight:500}
+#bossbar .bar{height:5px;margin:7px 0 0}
+#bossbar .bar i{background:linear-gradient(90deg,#c0303a,#ff7a6a)}
+body.bossfight #obj{visibility:hidden}
 
 /* in basso a sinistra: scheda personaggio */
 #bl{left:calc(16px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:210px;padding:10px 12px 11px;border-left:2px solid var(--amber)}
@@ -150,7 +157,17 @@ body.aiming #gl{cursor:none}
 .ghost{cursor:pointer;background:transparent;border:1px solid var(--line);border-radius:5px;padding:10px 16px;font-size:13px;color:var(--ink)}
 .ghost:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .best{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px}
-.blist{display:flex;flex-direction:column;gap:6px}
+.blist{display:flex;flex-direction:column;gap:6px;max-height:min(440px,60vh);overflow:auto;padding-right:4px}
+.shop{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.shop .item{display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:6px;padding:12px;font-size:13px}
+.shop .item b{font-size:14px}
+.shop .item .meta{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.06em}
+.shop .item .st{display:grid;grid-template-columns:auto auto;gap:3px 18px;font-size:12px;margin-bottom:4px}
+.shop .item .st span:nth-child(odd){color:var(--dim)}
+.shop .item .note{margin:0 0 4px}
+.shop .item button{margin-top:auto;align-self:flex-start}
+.shop .item.sold{opacity:.5}
+.shop button[disabled]{opacity:.45;cursor:default}
 .opt{cursor:pointer;text-align:left;border:1px solid var(--line);background:rgba(255,255,255,.03);border-radius:5px;padding:9px 10px;font-size:13px;display:flex;justify-content:space-between;gap:8px}
 .opt.on{border-color:var(--amber);background:rgba(233,180,92,.09)}
 .opt span{font-family:var(--mono);font-size:10px;color:var(--dim)}
@@ -214,7 +231,7 @@ body.touch #br{bottom:auto;top:calc(100px + env(safe-area-inset-top,0px));right:
 body.touch #tr{display:none}
 body.touch #prompt{bottom:calc(170px + env(safe-area-inset-bottom,0px))}
 body.touch #dialog{bottom:calc(180px + env(safe-area-inset-bottom,0px))}
-body.intitle #tl,body.intitle #tc,body.intitle #obj,body.intitle #tr,body.intitle #bl,body.intitle #touch,body.intitle #prompt,body.intitle #br .saved,body.intitle #xhair{display:none}
+body.intitle #tl,body.intitle #tc,body.intitle #obj,body.intitle #tr,body.intitle #bl,body.intitle #bossbar,body.intitle #touch,body.intitle #prompt,body.intitle #br .saved,body.intitle #xhair{display:none}
 body.touch .btn kbd{display:none}
 @media (max-width:1100px){body.talking:not(.touch) #bl,body.talking:not(.touch) #br{visibility:hidden}}
 .fail{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;font-size:15px;line-height:1.6;color:var(--ink);background:#05070a}
@@ -223,14 +240,19 @@ body.touch .btn kbd{display:none}
   .logo b{font-size:15px}
   #zoneName{font-size:16px}
   #tl{max-width:190px}
-  #tr{width:120px;padding:10px 8px 8px}
-  #map .w{width:11px;height:11px}
+  #tr{width:140px;padding:10px 8px 8px}
+  #map{gap:2px}
+  #map .w{width:8px;height:8px}
+  #map .w.home{width:10px;height:10px}
+  #mapTxt{font-size:9px}
   .cards{grid-template-columns:minmax(0,1fr)}
   .card{flex-direction:row;align-items:center}
   .card img{width:84px;flex:none}
   .best{grid-template-columns:minmax(0,1fr)}
+  .shop{grid-template-columns:minmax(0,1fr)}
+  #bossbar{top:calc(52px + env(safe-area-inset-top,0px));padding:6px 12px 8px}
   .bdet{grid-template-columns:minmax(0,1fr)}
-  .blist{flex-direction:row;flex-wrap:wrap}
+  .blist{flex-direction:row;flex-wrap:wrap;max-height:none}
   #tc{top:calc(10px + env(safe-area-inset-top,0px))}
 }
 @media (max-width:520px){
@@ -243,6 +265,8 @@ body.touch .btn kbd{display:none}
   #toasts{top:calc(120px + env(safe-area-inset-top,0px))}
   body.touch #bl{top:calc(128px + env(safe-area-inset-top,0px));width:160px;padding:8px 10px 9px}
   body.touch #wpn small{display:none}
+  #bossbar{top:calc(118px + env(safe-area-inset-top,0px));width:calc(100vw - 32px)}
+  body.touch #bossbar{top:calc(226px + env(safe-area-inset-top,0px))}
   body.touch .bar{margin:5px 0 4px}
   body.touch #br{top:calc(128px + env(safe-area-inset-top,0px));flex-direction:column;align-items:flex-end}
   .btn{padding:8px 10px}
@@ -287,9 +311,10 @@ body.touch .btn kbd{display:none}
     <span class="pill">Classe <i id="clsName">—</i></span>
     <span class="pill">Bestiario <kbd>B</kbd></span>
   </div>
-  <div id="obj"><div class="k">RAGGIUNGI IL VAGONE FINALE</div><div id="objSub">Scegli la tua classe</div></div>
+  <div id="obj"><div class="k">RAGGIUNGI LA LOCOMOTIVA</div><div id="objSub">Scegli la tua classe</div></div>
   <div id="toasts" aria-live="polite"></div>
-  <div id="tr" class="glass"><div id="map"></div><div id="mapTxt">0 / 20 vagoni</div></div>
+  <div id="tr" class="glass"><div id="map"></div><div id="mapTxt">0 / 10 vagoni</div></div>
+  <div id="bossbar" class="glass" hidden><b id="bossName"></b><div class="bar"><i id="bossHp"></i></div></div>
   <div id="bl" class="glass">
     <div class="row"><b id="pName">Cavaliere</b><span>#01</span></div>
     <div class="bar" id="hpBarWrap"><i id="hpBar"></i></div>

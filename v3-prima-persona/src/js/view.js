@@ -79,7 +79,7 @@ function updateFPCamera(dt) {
 /* ---------- mani e arma in primo piano ---------- */
 // il modello vive vicino alla telecamera (scala .3): resta davanti al mondo anche contro una parete.
 // Le pose sono direzioni nello spazio della telecamera (x destra, y su, -z avanti): braccio e arma vi si orientano.
-const VM = { root: null, key: '', u: null, sx: 0, sy: 0, atkSide: 1, recoil: 0, post: 0, postSide: 1, wasAtk: false, tp: [] };
+const VM = { root: null, key: '', u: null, sx: 0, sy: 0, atkSide: 1, recoil: 0, post: 0, postSide: 1, wasAtk: false, tp: [], fire: 0 };
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const Z_NEG = V3(0, 0, -1), _va = V3(0, 0, 0), _vd = V3(0, 0, 0), _vh = V3(0, 0, 0), _vn = V3(0, 0, 0), _vq = new THREE.Quaternion(), _vr = new THREE.Quaternion();
 function vmBox(parent, mat, w, h, d, x, y, z) { const m = new THREE.Mesh(boxGeo(w, h, d), mat); m.position.set(x, y, z); parent.add(m); return m; }
@@ -95,6 +95,9 @@ function buildArm(root, side, om, cls) {
   const hand = pivot(sh, 0, 0, -ARM), skin = cls === 'cavaliere' ? MAT.steelDark : MAT.skin;
   vmBox(hand, skin, .14, .15, .15, 0, 0, 0);
   vmBox(hand, skin, .05, .06, .12, -side * .085, .04, -.03);
+  // nocche e dita chiuse sull'impugnatura
+  for (let i = 0; i < 4; i++) { vmBox(hand, skin, .032, .04, .05, (i - 1.5) * .034, .065, -.06); vmBox(hand, skin, .032, .05, .04, (i - 1.5) * .034, -.02, -.085); }
+  if (cls === 'cavaliere') vmBox(hand, MAT.steel, .15, .03, .16, 0, .085, .01);
   const grip = new THREE.Group(); hand.add(grip);
   return { sh, sl, hand, grip, base: sh.position.clone() };
 }
@@ -109,8 +112,8 @@ function aimArm(A, a, d, roll = 0, len = ARM) {
 }
 const handAt = (A, a, out) => out.copy(a).normalize().multiplyScalar(ARM).add(A.sh.position);
 // lunghezza utile della lama per la scia del fendente
-const VMS = { spada: .62, ascia: .66, pugnale: .8, bastone: .6, arco: .68 };
-const REACHL = { spada: [1.05 * .62, .4 * .62], ascia: [.82 * .66, .5 * .66], pugnale: [.55 * .8, .22 * .8], bastone: [.85 * .6, .4 * .6], arco: [.3, .1] };
+const VMS = { spada: .62, sciabola: .64, ascia: .66, pugnale: .8, lancia: .5, martello: .58, falce: .5, bastone: .6, arco: .68, balestra: .74, trombone: .86, tomo: .72, lanterna: .8 };
+const REACHL = t => [(WTIP[t] || 1) * (VMS[t] || .62), (WTIP[t] || 1) * .38 * (VMS[t] || .62)];
 function buildViewModel() {
   if (VM.root) camera.remove(VM.root);
   const om = outfitMats[save.outfit] || outfitMats[0], cls = p.cls.id, w = p.weapon, kind = WT[w.type].kind;
@@ -126,13 +129,14 @@ function buildViewModel() {
     arrow = new THREE.Group(); vmBox(arrow, MAT.cream, .04, .04, .92, 0, 0, .46); vmBox(arrow, MAT.steel, .08, .08, .14, 0, 0, .95); vmBox(arrow, MAT.red, .02, .1, .16, 0, 0, .06);
     arrow.position.x = .15; wm.add(arrow); // poggia sopra la mano, sulla finestra dell'arco
   } else {
-    // la lama (o il bastone) esce dal pugno in avanti
+    // la lama (o il bastone, la canna, il libro) esce dal pugno in avanti
     wm.rotation.set(0, Math.PI, 0); wm.position.z = w.type === 'bastone' ? .3 * VMS.bastone : 0; R.grip.add(wm);
   }
   // riflesso dorato della parata: un bagliore morbido davanti al braccio
   const parry = glowSprite(root, -.1, -.12, -1.0, 1.5, 0xffd890, 0);
   // bagliore della magia sul pomolo del bastone
-  let gemGlow = null; if (w.type === 'bastone') gemGlow = glowSprite(wm, 0, 0, 1.12, .9, 0xb070ff, .0);
+  let gemGlow = null; const gm = wm.userData.gem;
+  if (gm) gemGlow = glowSprite(wm, gm.position.x, gm.position.y, gm.position.z, w.type === 'lanterna' ? 1.3 : .9, w.type === 'lanterna' ? 0xff8a30 : w.type === 'tomo' ? 0x8ac8ff : 0xb070ff, .0);
   // scia del fendente: una striscia che segue la punta dell'arma
   const N = 12, tg = new THREE.BufferGeometry();
   tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 6), 3)); tg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(N * 6), 3));
@@ -141,7 +145,7 @@ function buildViewModel() {
   trail.visible = false; root.add(trail);
   root.traverse(o => { o.userData.cs = false; if (o.isMesh || o.isSprite) { o.castShadow = false; o.receiveShadow = !o.material.transparent; o.frustumCulled = false; } });
   VM.root = root; VM.tp = [];
-  VM.u = { R, L, wm, arrow, strA, strB, parry, gemGlow, kind, type: w.type, trail, N, tcol: lin(w.rar === 2 ? 0xd9a8ff : w.rar === 1 ? 0xa8ccff : 0xffe2a8) };
+  VM.u = { R, L, wm, arrow, strA, strB, parry, gemGlow, kind, style: WT[w.type].style, type: w.type, rar: w.rar, trail, N, tcol: lin(w.rar === 2 ? 0xd9a8ff : w.rar === 1 ? 0xa8ccff : 0xffe2a8) };
   VM.key = cls + '|' + w.type + w.rar + '|' + save.outfit;
 }
 const easeOut = t => 1 - Math.pow(1 - t, 3);
@@ -154,11 +158,26 @@ const POSE = {
   sw1: [{ a: V3(.35, .5, -.8), d: V3(.75, .55, -.35), r: .3 }, { a: V3(0, .25, -.97), d: V3(-.45, .3, -.84), r: .9 }, { a: V3(-.5, .02, -.87), d: V3(-.97, -.12, -.2), r: 1.4 }],
   sw2: [{ a: V3(-.45, .45, -.77), d: V3(-.8, .45, -.4), r: -.4 }, { a: V3(0, .2, -.98), d: V3(.45, .2, -.87), r: -1.0 }, { a: V3(.5, -.05, -.86), d: V3(.95, -.2, -.25), r: -1.5 }],
   bowL: V3(.38, .32, -.87),
-  guard: V3(.48, .4, -.78)
+  guard: V3(.48, .4, -.78),
+  // lancia: affondo dritto verso il mirino
+  spear: { a: V3(.02, .22, -.97), d: V3(-.14, .2, -.97), r: 0 }, spearHit: { a: V3(-.1, .12, -.99), d: V3(-.1, .1, -.99), r: 0 },
+  // martello: su sopra la testa, poi giù a terra
+  smash: [{ a: V3(.22, .85, -.48), d: V3(.1, .9, .42), r: 0 }, { a: V3(0, -.08, -1), d: V3(-.05, -.85, -.52), r: 0 }],
+  // armi da imbracciare, libro, lanterna
+  gun: { a: V3(-.02, .26, -.96), d: V3(-.16, -.03, -1), r: 0 },
+  book: { a: V3(-.12, .25, -.96), d: V3(-.1, .78, -.62), r: 0 }, bookCast: { a: V3(-.1, .18, -.98), d: V3(-.05, .5, -.86), r: 0 },
+  lantern: { a: V3(-.05, .3, -.95), d: V3(-.15, .45, -.88), r: 0 }, lanternCast: { a: V3(-.06, .2, -.98), d: V3(-.05, .18, -.98), r: 0 }
 };
 const _pa = V3(0, 0, 0), _pd = V3(0, 0, 0);
 function lerpPose(P0, P1, t, out) { out.a.copy(P0.a).lerp(P1.a, t); out.d.copy(P0.d).lerp(P1.d, t); out.r = lerp(P0.r, P1.r, t); return out; }
 const _ps = { a: V3(0, 0, 0), d: V3(0, 0, 0), r: 0 };
+function smashPose(a, out) {
+  const K = POSE.smash;
+  if (a < .35) return lerpPose(POSE.rest, K[0], easeOut(a / .35), out);
+  if (a < .5) return lerpPose(K[0], K[1], (a - .35) / .15, out);
+  if (a < .75) return lerpPose(K[1], K[1], 0, out);
+  return lerpPose(K[1], POSE.rest, (a - .75) / .25, out);
+}
 function swingPose(side, a, out) {
   const K = side > 0 ? POSE.sw1 : POSE.sw2;
   return a < .5 ? lerpPose(K[0], K[1], a / .5, out) : lerpPose(K[1], K[2], (a - .5) / .5, out);
@@ -182,7 +201,18 @@ function updateViewModel(dt) {
   let anchor = R, anchorA = POSE.rest.a, fx = .56, fy = isTouch && asp < 1 ? -.4 : -.62, Pt = null;
   // con il campo verticale stretto (schermi bassi e larghi) braccio e arma si rimpiccioliscono, senza spostarsi sullo schermo
   const vs = Math.min(1, Math.tan(vh) / .577) * (isTouch && asp > 1 ? .9 : 1);
-  if (u.kind === 'melee') {
+  let thr = 0;
+  if (u.kind === 'melee' && u.style === 'thrust') {
+    const k = attacking ? Math.sin(Math.min(1, a) * Math.PI) : 0; thr = k;
+    const P = lerpPose(POSE.spear, POSE.spearHit, k, _ps); aimArm(R, P.a, P.d, P.r);
+  } else if (u.kind === 'melee' && u.style === 'smash') {
+    const P = attacking ? smashPose(a, _ps) : POSE.rest; _pa.copy(P.a); _pa.y += breath * .5; aimArm(R, _pa, P.d, P.r);
+    const ln = REACHL(u.type);
+    if (attacking && a > .3 && a < .55) { const h = handAt(R, P.a, _vh), dn = _vd.copy(P.d).normalize(); VM.tp.push({ t: T, x: h.x + dn.x * ln[0], y: h.y + dn.y * ln[0], z: h.z + dn.z * ln[0], mx: h.x + dn.x * ln[1], my: h.y + dn.y * ln[1], mz: h.z + dn.z * ln[1] }); }
+  } else if (u.style === 'gun') {
+    VM.fire = Math.max(0, VM.fire - dt * 6);
+    _pd.copy(POSE.gun.d); _pd.y += VM.fire * .35; aimArm(R, POSE.gun.a, _pd, 0); anchorA = POSE.gun.a;
+  } else if (u.kind === 'melee') {
     let P = POSE.rest;
     if (attacking) { P = swingPose(VM.atkSide, easeOut(a), _ps); VM.wasAtk = true; VM.postSide = VM.atkSide; }
     else {
@@ -191,16 +221,18 @@ function updateViewModel(dt) {
     }
     _pa.copy(P.a); _pa.y += breath * .5; aimArm(R, _pa, P.d, P.r);
     // scia della punta
-    const ln = REACHL[u.type] || REACHL.spada;
+    const ln = REACHL(u.type);
     if (attacking) {
       const h = handAt(R, P.a, _vh), dn = _vd.copy(P.d).normalize();
       VM.tp.push({ t: T, x: h.x + dn.x * ln[0], y: h.y + dn.y * ln[0], z: h.z + dn.z * ln[0], mx: h.x + dn.x * ln[1], my: h.y + dn.y * ln[1], mz: h.z + dn.z * ln[1] });
     }
   } else if (u.kind === 'magic') {
-    let P = POSE.magic;
-    if (attacking) P = lerpPose(POSE.magic, POSE.cast, Math.sin(Math.min(1, a) * Math.PI), _ps);
-    aimArm(R, P.a, P.d, P.r); anchorA = POSE.magic.a;
-    if (u.gemGlow) { const g = u.gemGlow.material; g.opacity = attacking && a < .3 ? .95 : Math.max(0, (g.opacity || 0) - dt * 2.5); }
+    const P0 = u.type === 'tomo' ? POSE.book : u.type === 'lanterna' ? POSE.lantern : POSE.magic, P1 = u.type === 'tomo' ? POSE.bookCast : u.type === 'lanterna' ? POSE.lanternCast : POSE.cast;
+    let P = P0;
+    if (attacking) P = lerpPose(P0, P1, Math.sin(Math.min(1, a) * Math.PI), _ps);
+    aimArm(R, P.a, P.d, P.r); anchorA = P0.a;
+    // la lanterna arde sempre, il tomo sfrigola, il bastone si accende quando lancia
+    if (u.gemGlow) { const g = u.gemGlow.material, base = u.type === 'lanterna' ? .55 + Math.sin(T * 17) * .08 + Math.sin(T * 7) * .06 : u.type === 'tomo' ? .3 + Math.max(0, Math.sin(T * 23)) * .25 : 0; g.opacity = attacking && a < .3 ? .95 : Math.max(base, (g.opacity || 0) - dt * 2.5); }
   } else {
     // arco: la sinistra lo regge a sinistra del mirino, puntato verso il centro; il braccio si allunga quanto serve
     L.sh.visible = true; R.sh.visible = false; anchor = null; L.sh.position.set(-.42, -.88 + breath, 0); L.hand.scale.setScalar(.7);
@@ -221,12 +253,13 @@ function updateViewModel(dt) {
   const k1 = 1 - vs; ox += Pt.x * k1; oy += Pt.y * k1; root.scale.setScalar(.3 * vs);
   const bx_ = Math.cos(LOOK.bobT) * .05 * LOOK.bob, by_ = -Math.abs(Math.sin(LOOK.bobT)) * .045 * LOOK.bob;
   VM.recoil = Math.max(0, VM.recoil - dt * 5);
-  root.position.set((ox + VM.sx + bx_) * .3, (oy + by_ + VM.sy - (p.slideT > 0 ? .1 : 0) - (p.onGround ? 0 : .03)) * .3 - VM.recoil * .02, Pt.z * k1 * .3 + VM.recoil * .02);
+  root.position.set((ox + VM.sx + bx_) * .3, (oy + by_ + VM.sy - (p.slideT > 0 ? .1 : 0) - (p.onGround ? 0 : .03)) * .3 - VM.recoil * .02, Pt.z * k1 * .3 + VM.recoil * .02 - thr * .1 + (u.style === 'gun' ? VM.fire * .025 : 0));
   root.rotation.set(VM.recoil * .25, 0, p.slideT > 0 ? .22 : 0);
   // parata: un braccio si alza davanti, con il lampo dorato
   if (p.parryT > 0) { const G = u.kind === 'ranged' ? R : L; G.sh.visible = true; if (G === R) { R.sh.position.copy(R.base); aimArm(R, _va.set(-POSE.guard.x, POSE.guard.y, POSE.guard.z), null); } else aimArm(L, POSE.guard, null); }
   u.parry.material.opacity = p.parryT > 0 ? .55 + Math.random() * .2 : Math.max(0, u.parry.material.opacity - dt * 3);
   if (u.wm.userData.gem) u.wm.userData.gem.rotation.y += dt * 3;
+  if (u.rar === 2) { MAT.runeEpic.emissiveIntensity = 3.4 + Math.sin(T * 4) * 1.3; MAT.bladeEpic.emissiveIntensity = 1.1 + Math.sin(T * 4) * .4; }
   updateTrail(u);
 }
 function updateTrail(u) {
@@ -245,12 +278,11 @@ function updateTrail(u) {
 
 /* ---------- mira: verso il centro dello schermo, con un piccolo aiuto ---------- */
 // centro e mezza altezza dei bersagli, sopra i piedi del nemico
-const HIT = { ratto: [.32, .36], scheletro: [1.0, 1.0], arciere: [1.0, 1.0], bigliettaio: [1.35, 1.25] };
 function aimTarget(range, assist) {
   const f = viewDir(new THREE.Vector3()), ey = p.y + LOOK.eyeNow;
   let best = null, bs = 1e9;
   for (const e of enemies) {
-    if (e.dead || e.falling || e.fadeIn > 0) continue;
+    if (untouchable(e) || e.fadeIn > 0 || e.state === 'sleep') continue;
     const c = HIT[e.type], tx = e.x - p.x, ty = e.y + c[0] - ey, tz = e.z - p.z, d = Math.hypot(tx, ty, tz);
     if (d > range || d < .01) continue;
     const ang = Math.acos(clamp((tx * f.x + ty * f.y + tz * f.z) / d, -1, 1)), tol = assist + Math.atan2(c[1] * .7, d);
