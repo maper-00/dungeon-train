@@ -1,0 +1,4 @@
+# copia locale di three.js per le build di prova (build.py ... local)
+three/
+# screenshot e script delle prove con Playwright
+test/
