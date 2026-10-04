@@ -1,8 +1,8 @@
 /* ================= dati di gioco ================= */
 const CLASSES = [
   { id: 'cavaliere', name: 'Cavaliere', hp: 6, speed: 5.3, weapon: 'spada', perk: 'parry', desc: 'Più vita. La finestra di parry è più ampia.' },
-  { id: 'ranger', name: 'Ranger', hp: 4, speed: 6.3, weapon: 'arco', perk: 'slide', desc: 'Più veloce. Scivolata più lunga e potente.' },
-  { id: 'mago', name: 'Mago', hp: 4, speed: 5.7, weapon: 'bastone', perk: 'pierce', desc: 'I dardi trapassano i nemici, il fulmine rimbalza una volta in più.' }
+  { id: 'ranger', name: 'Ranger', hp: 5, speed: 6.3, weapon: 'arco', perk: 'slide', desc: 'Più veloce. Scivolata più lunga e potente.' },
+  { id: 'mago', name: 'Mago', hp: 5, speed: 5.7, weapon: 'bastone', perk: 'pierce', desc: 'I dardi trapassano i nemici, il fulmine rimbalza una volta in più.' }
 ];
 // kind: melee (mischia), ranged (a distanza), magic. style cambia il gesto: thrust affondo, smash schianto, gun da imbracciare, chain fulmine, fire palla di fuoco
 const WT = {
@@ -31,28 +31,28 @@ function validWeapon(w) { return w && WT[w.type] && typeof w.dmg === 'number' &&
 // r raggio, hit [centro, mezza altezza] del bersaglio, hph altezza della barra vita, ring scala dell'anello, chunk colori delle schegge, where primo vagone in cui compare
 const MOBS = {
   ratto: { name: 'Ratto del Bagagliaio', hp: 4, wpn: ['pugnale'], mult: { slide: 3, ascia: 1.5, falce: 1.5, trombone: 1.5 }, r: .4, hit: [.32, .36], hph: 1.05, ring: .75, chunk: [0x625852, 0xc4867f, 0x3a302c], rat: true, where: 1,
-    weak: 'Una scivolata lo travolge (danno x3). Asce, falci e trombone lo finiscono subito. Passa sotto sedili e tavoli.',
+    weak: 'Morde e poi scappa: colpiscilo quando torna alla carica. Una scivolata lo travolge (danno x3). Asce, falci e trombone lo finiscono subito. Passa sotto sedili e tavoli.',
     lore: 'Nati nei bagagli dimenticati. Rubano i coltelli dalla carrozza ristorante e non li restituiscono più.' },
   scheletro: { name: 'Passeggero Scheletrico', hp: 9, wpn: ['spada', 'ascia', 'sciabola'], mult: { ascia: 1.5, martello: 1.8 }, r: .45, hit: [1.0, 1.0], hph: 2.35, ring: .9, chunk: [0xd8ccb0, 0xc8bc9e, 0x2a2020], where: 1,
     weak: 'Le armi pesanti gli spezzano le ossa (Ascia x1.5, Martello x1.8). Para il fendente quando alza l\'arma per stordirlo.',
     lore: 'Ha perso la sua fermata. Anzi, tutte le fermate. Aspetta ancora che il controllore gli timbri il biglietto.' },
-  arciere: { name: 'Scheletro Arciere', hp: 6, wpn: ['arco', 'balestra'], mult: { reflect: 2, bastone: 1.3, balestra: 1.4 }, r: .45, hit: [1.0, 1.0], hph: 2.35, ring: .9, chunk: [0xd8ccb0, 0x8e2630, 0x2a2020], where: 1,
+  arciere: { name: 'Scheletro Arciere', hp: 6, wpn: ['arco', 'balestra'], wpnLvl: { balestra: 3 }, mult: { reflect: 2, bastone: 1.3, balestra: 1.4 }, r: .45, hit: [1.0, 1.0], hph: 2.35, ring: .9, chunk: [0xd8ccb0, 0x8e2630, 0x2a2020], where: 1,
     weak: 'Ribalta un tavolo e riparati dietro. Le frecce parate tornano indietro con danno doppio. La balestra lo trafigge (x1.4).',
     lore: 'Tira dal fondo del vagone. Dicono fosse campione di tiro, prima di salire sul treno sbagliato.' },
-  bigliettaio: { name: 'Bigliettaio Spettrale', hp: 34, wpn: ['bastone', 'tomo'], mult: { bastone: 1.5, tomo: 1.5, reflect: 2 }, elite: true, fly: true, r: .65, hit: [1.35, 1.25], hph: 3.0, ring: 1.3, chunk: [0x62d4c7, 0x1f2a52, 0xc8963c], where: 1,
-    weak: 'La magia lo ferisce di più (Bastone e Tomo x1.5). Para i biglietti per rispedirglieli.',
+  bigliettaio: { name: 'Bigliettaio Spettrale', hp: 26, wpn: ['bastone', 'tomo'], mult: { bastone: 1.5, tomo: 1.5, reflect: 2 }, elite: true, fly: true, r: .65, hit: [1.35, 1.25], hph: 3.0, ring: 1.3, chunk: [0x62d4c7, 0x1f2a52, 0xc8963c], where: 1,
+    weak: 'Prima dello scatto si ferma e grida «BIGLIETTO!»: spostati di lato. Dopo lo scatto resta stordito a mezz\'aria, ed è il momento di colpirlo. La magia lo ferisce di più (Bastone e Tomo x1.5). Para i biglietti per rispedirglieli.',
     lore: 'Il braccio destro del capotreno. Timbra biglietti che nessuno ha comprato. È molto zelante, anche da morto.' },
   cuoco: { name: 'Cuoco Scheletrico', hp: 8, wpn: ['sciabola', 'pugnale'], mult: { reflect: 2, sciabola: 1.5 }, r: .45, hit: [1.0, 1.0], hph: 2.6, ring: .9, chunk: [0xd8ccb0, 0xeeeae0, 0x8e2630], where: 2,
     weak: 'Lancia mannaie a parabola: parale e tornano indietro col danno doppio. Teme le sciabole (x1.5). Da vicino si gira lentamente.',
     lore: 'Cucina per una carrozza ristorante dove nessuno ordina più. Lancia mannaie a chi non lascia la mancia.' },
   mimic: { name: 'Baule Mimetico', hp: 12, wpn: ['martello', 'tomo', 'trombone', 'lancia', 'falce', 'lanterna'], mult: { martello: 1.5, lanterna: 1.5 }, r: .55, hit: [.45, .45], hph: 1.4, ring: 1.0, chunk: [0x6b4428, 0xc8963c, 0x9b2f35], jumps: true, loot: .35, where: 3,
-    weak: 'Finge di essere un baule. Colpiscilo prima che si svegli: il primo colpo fa danno doppio. Martello e fuoco lo aprono in due (x1.5).',
+    weak: 'Finge di essere un baule. Colpiscilo prima che si svegli: il primo colpo fa danno doppio. Dopo ogni salto resta a bocca aperta per un attimo. Martello e fuoco lo aprono in due (x1.5).',
     lore: 'Un baule smarrito che ha deciso di non farsi ritrovare. Dentro tiene armi rare e non le cede volentieri.' },
   fantasma: { name: 'Passeggero Fantasma', hp: 7, wpn: ['falce', 'bastone', 'tomo'], mult: { bastone: 1.5, tomo: 1.5, lanterna: 1.5, falce: 1.5 }, fly: true, r: .5, hit: [1.2, .9], hph: 2.4, ring: 1.0, chunk: [0xb8a8ff, 0x4a3a80, 0xe8e0ff], where: 4,
     weak: 'Quando svanisce non si può colpire: aspetta che riappaia e colpiscilo durante lo scatto. Magia, fuoco e falce lo feriscono di più (x1.5).',
     lore: 'Dorme ancora nel vagone letto e si sveglia solo per lamentarsi del rumore. Il rumore sei tu.' },
   ragno: { name: 'Ragno delle Serre', hp: 5, wpn: ['pugnale', 'balestra'], mult: { falce: 1.6, trombone: 1.6, slide: 2 }, r: .45, hit: [.35, .35], hph: 1.0, ring: .85, chunk: [0x2a2430, 0x7ae070, 0x4a3a50], rat: true, jumps: true, where: 5,
-    weak: 'Si accuccia prima di saltare: scansalo di lato o paralo. Falce e trombone lo spazzano via (x1.6).',
+    weak: 'Si accuccia prima di saltare: scansalo di lato o paralo. Dopo il morso scappa e torna. Falce e trombone lo spazzano via (x1.6).',
     lore: 'Arrivato con una cassa di orchidee esotiche. Le orchidee sono morte, lui no.' },
   regina: { name: 'Regina delle Serre', hp: 58, wpn: ['falce', 'balestra', 'lanterna'], mult: { lanterna: 1.5, falce: 1.4, reflect: 2 }, elite: true, boss: true, r: 1.1, hit: [.75, .7], hph: 2.2, ring: .9, chunk: [0x3a2050, 0x9aff70, 0x6a3a90], jumps: true, where: 5,
     weak: 'Le palle di ragnatela parate tornano indietro (x2) e il fuoco la brucia (x1.5). Quando atterra dal salto manda un\'onda a terra: saltala.',
@@ -61,12 +61,12 @@ const MOBS = {
     weak: 'Lancia carbone ardente che lascia fiamme a terra: non restarci sopra. Il carbone parato torna indietro (x2). La lancia lo tiene a distanza (x1.5).',
     lore: 'Ha spalato carbone per cent\'anni. Adesso spala anche i passeggeri.' },
   guardia: { name: 'Guardia Corazzata', hp: 16, wpn: ['lancia', 'martello'], mult: { martello: 2 }, shield: true, r: .5, hit: [1.0, 1.0], hph: 2.5, ring: 1.0, chunk: [0xa7b0ba, 0xd8ccb0, 0xc8963c], where: 7,
-    weak: 'Lo scudo para i colpi frontali. Colpisci di lato o alle spalle, oppure para il suo affondo: stordita abbassa lo scudo. Il martello lo sfonda (x2).',
+    weak: 'Lo scudo assorbe gran parte dei colpi frontali. Colpisci di lato o alle spalle, subito dopo il suo affondo, oppure para: stordita abbassa lo scudo. Il martello lo sfonda (x2).',
     lore: 'Sorveglia un tesoro che nessuno ricorda di aver caricato. Non ha mai preso un giorno di ferie.' },
   automa: { name: 'Automa a Molla', hp: 12, wpn: ['trombone', 'balestra'], mult: { tomo: 1.6, martello: 1.4 }, r: .5, hit: [.8, .8], hph: 1.95, ring: 1.0, chunk: [0xb8693a, 0xc8963c, 0x2a2d31], where: 8,
     weak: 'Prima della carica si ferma e gira la chiave: fatti da parte e lascialo sbattere contro un ostacolo, resterà stordito. Il fulmine lo manda in tilt (x1.6).',
     lore: 'Costruito per servire il tè in prima classe. Qualcuno gli ha dato troppa corda.' },
-  capotreno: { name: 'Il Capotreno', hp: 120, wpn: ['tomo', 'lanterna', 'falce'], mult: { reflect: 2, tomo: 1.25, martello: 1.25 }, elite: true, boss: true, r: .8, hit: [1.5, 1.5], hph: 3.6, ring: 1.0, chunk: [0x1f2a52, 0xd8ccb0, 0xc8963c], where: 10,
+  capotreno: { name: 'Il Capotreno', hp: 100, wpn: ['tomo', 'lanterna', 'falce'], mult: { reflect: 2, tomo: 1.25, martello: 1.25 }, elite: true, boss: true, r: .8, hit: [1.5, 1.5], hph: 3.6, ring: 1.0, chunk: [0x1f2a52, 0xd8ccb0, 0xc8963c], where: 10,
     weak: 'Quando batte la lanterna a terra parte un\'onda: saltala. I biglietti parati tornano indietro (x2). Parare la lanternata lo stordisce per un attimo.',
     lore: 'La voce dell\'altoparlante. Ha costruito un treno che non si ferma mai, poi ha perso la chiave del freno. Forse ce l\'hai tu.' }
 };

@@ -146,25 +146,27 @@ function meleeAI(e, dt, c, o) {
   else {
     e.state = 'walk';
     steer(e, p.x, p.z, c.dist > o.range * .76 ? e.spd : 0, c.opt, dt); e.face = turnTo(e.face, c.toP, 6 * dt);
-    if (c.dist < o.range && e.cd <= 0 && p.y < 1.6) { e.state = 'windup'; e.st = o.windup; sfx('tick'); }
+    if (c.dist < o.range && e.cd <= 0 && p.y < 1.6 && attackers(e) < PACE.slots) { e.state = 'windup'; e.st = o.windup * c.tele; sfx('tick'); }
   }
 }
 const inMelee = e => e.state === 'windup' || e.state === 'strike' || e.state === 'recover';
+// quanti altri nemici stanno già caricando o sferrando un colpo: nei primi vagoni si attacca uno alla volta
+const attackers = e => enemies.filter(o => o !== e && !o.dead && (o.state === 'windup' || o.state === 'strike')).length;
 // lancio a parabola verso dove sarà il giocatore
 function lob(e, kind, dmg) {
   const hx = e.x + Math.sin(e.face) * .4, hz = e.z + Math.cos(e.face) * .4, hy = e.y + 1.7;
-  const tx = p.x + p.vx * .25, tz = p.z + p.vz * .25, dx = tx - hx, dz = tz - hz, d = Math.hypot(dx, dz), t = clamp(d / 10, .45, 1.25), g = 14;
+  const lead = .25 * (1 - PACE.k), tx = p.x + p.vx * lead, tz = p.z + p.vz * lead, dx = tx - hx, dz = tz - hz, d = Math.hypot(dx, dz), t = clamp(d / 10, .45, 1.25) / PACE.proj, g = 14;
   spawnProj({ from: 'e', isProj: true, x: hx, y: hy, z: hz, vx: dx / t, vz: dz / t, vy: (p.y + .9 - hy + .5 * g * t * t) / t, g, dmg, kind, life: 3 });
 }
 // tira da media distanza: si allontana se sei vicino, si avvicina se sei lontano, altrimenti gira di lato
 function throwerAI(e, dt, c, kind, dmg) {
   e.face = turnTo(e.face, c.toP, 7 * dt);
-  if (e.state === 'throw') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { lob(e, kind, dmg); sfx('swing'); e.state = 'walk'; e.cd = rnd(1.7, 2.5); } return; }
+  if (e.state === 'throw') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { lob(e, kind, dmg); sfx('swing'); e.state = 'walk'; e.cd = rnd(2.2, 3.2); } return; }
   e.state = 'walk';
   let tx = e.x, tz = e.z;
   if (c.dist < 4.5) { tx = e.x - c.dx; tz = e.z - c.dz; } else if (c.dist > 9) { tx = p.x; tz = p.z; } else { tx = e.x + Math.cos(c.toP) * 2 * e.side; tz = e.z - Math.sin(c.toP) * 2 * e.side; }
   steer(e, tx, tz, c.dist < 4.5 || c.dist > 9 ? e.spd : e.spd * .45, c.opt, dt);
-  if (e.cd <= 0 && c.dist < 14) { e.state = 'throw'; e.st = .6; }
+  if (e.cd <= 0 && c.dist < 14) { e.state = 'throw'; e.st = e.st0 = .6 * c.tele; }
 }
 function ticketFan(e, n, step, sp) {
   const a0 = Math.atan2(p.x - e.x, p.z - e.z), y = e.y + 1.3;
@@ -174,7 +176,7 @@ function ticketFan(e, n, step, sp) {
 function minions(e) { return enemies.filter(m => !m.dead && m.minion).length; }
 function summon(e, types) {
   for (let i = 0; i < types.length; i++) {
-    if (minions(e) >= 4) break;
+    if (minions(e) >= 3) break;
     const a = e.face + (i ? 1 : -1) * rnd(.9, 1.6), d = rnd(1.8, 2.6);
     const x = clamp(e.x + Math.sin(a) * d, level.x0 + 1.2, level.x1 - 1.2), z = clamp(e.z + Math.cos(a) * d, level.z0 + 1.2, level.z1 - 1.2);
     const m = spawnEnemy(types[i], Math.max(1, e.lvl - 1), x, z, 'rise'); m.minion = true;
@@ -182,37 +184,48 @@ function summon(e, types) {
 }
 const AI = {
   ratto(e, dt, c) {
+    // morde e scappa: dopo il morso si allontana per un attimo, poi torna alla carica
+    if (e.state === 'flee') { e.st -= dt; steer(e, e.x - c.dx, e.z - c.dz, e.spd, c.opt, dt); e.face = turnTo(e.face, Math.atan2(e.vx, e.vz), 10 * dt); if (e.st <= 0) e.state = 'walk'; return; }
+    e.state = 'walk';
     steer(e, p.x, p.z, e.spd, c.opt, dt); e.face = turnTo(e.face, Math.atan2(e.vx, e.vz), 10 * dt);
-    if (c.dist < e.r + p.r + .15 && e.bite <= 0 && p.y < .8) { e.bite = .9; hurtPlayer(1, e); }
+    if (c.dist < e.r + p.r + .15 && e.bite <= 0 && p.y < .8) { e.bite = .9; hurtPlayer(1, e); if (e.stun <= 0) { e.state = 'flee'; e.st = rnd(.7, 1.1) * c.tele; } }
   },
-  scheletro(e, dt, c) { meleeAI(e, dt, c, { range: 2.1, windup: .55, lunge: 6.5, dmg: e.lvl > 1 ? 2 : 1 }); },
+  scheletro(e, dt, c) { meleeAI(e, dt, c, { range: 2.1, windup: .55, lunge: 6.5, dmg: 1 }); },
   arciere(e, dt, c) {
     e.face = turnTo(e.face, c.toP, 7 * dt);
     const xb = e.weapon === 'balestra';
-    if (e.state === 'draw') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { const s = xb ? 13 : 9.5, y = 1.4; spawnProj({ from: 'e', isProj: true, x: e.x + Math.sin(c.toP) * .6, y, z: e.z + Math.cos(c.toP) * .6, vx: Math.sin(c.toP) * s, vz: Math.cos(c.toP) * s, vy: (p.y + 1.2 - y) * s / Math.max(2, c.dist), dmg: xb && e.lvl > 2 ? 2 : 1, kind: xb ? 'quarrel' : 'arrow', life: 3 }); sfx('shoot'); e.state = 'walk'; e.cd = xb ? rnd(2.2, 2.9) : rnd(1.5, 2.2); } return; }
+    if (e.state === 'draw') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { const s = xb ? 13 : 9.5, y = 1.4; spawnProj({ from: 'e', isProj: true, x: e.x + Math.sin(c.toP) * .6, y, z: e.z + Math.cos(c.toP) * .6, vx: Math.sin(c.toP) * s, vz: Math.cos(c.toP) * s, vy: (p.y + 1.2 - y) * s / Math.max(2, c.dist), dmg: 1, kind: xb ? 'quarrel' : 'arrow', life: 3 }); sfx('shoot'); e.state = 'walk'; e.cd = xb ? rnd(2.2, 2.9) : rnd(1.5, 2.2); } return; }
     e.state = 'walk';
     let tx = e.x, tz = e.z;
     if (c.dist < 5.5) { tx = e.x - c.dx; tz = e.z - c.dz; } else if (c.dist > 9.5) { tx = p.x; tz = p.z; } else { tx = e.x + Math.cos(c.toP) * 2 * e.side; tz = e.z - Math.sin(c.toP) * 2 * e.side; }
     steer(e, tx, tz, c.dist < 5.5 || c.dist > 9.5 ? e.spd : e.spd * .4, c.opt, dt);
-    if (e.cd <= 0 && c.dist < 15) { e.state = 'draw'; e.st = xb ? .9 : .75; }
+    if (e.cd <= 0 && c.dist < 15) { e.state = 'draw'; e.st = (xb ? .9 : .75) * c.tele; }
   },
   bigliettaio(e, dt, c) {
     e.face = turnTo(e.face, c.toP, 5 * dt);
-    if (e.dashT > 0) { e.dashT -= dt; e.vx = Math.sin(e.dashA) * 11; e.vz = Math.cos(e.dashA) * 11; if (Math.random() < .5) Sparks.emit(e.x, 1.4, e.z, 2, 0x62d4c7, .5, .5, .5, 0); }
-    else {
-      const want = 5.5, orbit = T * .6;
-      const tx = p.x - Math.sin(c.toP + Math.sin(orbit) * .8) * want, tz = p.z - Math.cos(c.toP + Math.sin(orbit) * .8) * want;
-      const k = Math.min(1, dt * 2); e.vx += ((tx - e.x) * 1.1 - e.vx) * k; e.vz += ((tz - e.z) * 1.1 - e.vz) * k;
-      const sp = Math.hypot(e.vx, e.vz); if (sp > 4) { e.vx *= 4 / sp; e.vz *= 4 / sp; }
-      e.tickCd -= dt; e.dashCd -= dt;
-      if (e.tickCd <= 0 && e.fadeIn <= 0) { e.tickCd = e.lvl > 2 ? 1.8 : 2.2; ticketFan(e, e.lvl > 2 ? 5 : 3, .32, 7.5); }
-      if (e.dashCd <= 0 && c.dist < 10 && e.fadeIn <= 0) { e.dashCd = rnd(4.2, 5.6); e.dashT = .55; e.dashA = c.toP; UI.dmg(e.x, 3.4, e.z, 'BIGLIETTO!', '#62d4c7'); sfx('ghost'); }
+    // dopo lo scatto resta stordito e basso per un attimo: è il momento di colpirlo
+    if (e.state === 'tired') { e.vx *= .9; e.vz *= .9; e.st -= dt; if (Math.random() < .25) Sparks.emit(e.x, e.y + 2.1, e.z, 1, 0x62d4c7, .5, .8, .5, 0); if (e.st <= 0) e.state = 'walk'; return; }
+    // prima dello scatto si ferma e lo annuncia
+    if (e.state === 'aim') { e.vx *= .85; e.vz *= .85; e.st -= dt; if (e.st <= 0) { e.state = 'dash'; e.dashT = .55; e.dashA = c.toP; sfx('ghost'); } return; }
+    if (e.state === 'dash') {
+      e.dashT -= dt; e.vx = Math.sin(e.dashA) * 11; e.vz = Math.cos(e.dashA) * 11; if (Math.random() < .5) Sparks.emit(e.x, 1.4, e.z, 2, 0x62d4c7, .5, .5, .5, 0);
+      // ferisce solo passando attraverso chi gioca
+      if (c.dist < e.r + p.r + .2 && e.bite <= 0) { e.bite = 1; hurtPlayer(e.lvl > 2 ? 2 : 1, e); }
+      if (e.dashT <= 0) { e.state = 'tired'; e.st = 1.2 * c.tele; UI.dmg(e.x, e.y + 2.9, e.z, 'STORDITO', '#62d4c7'); }
+      return;
     }
-    if (c.dist < e.r + p.r + .2 && e.bite <= 0 && e.fadeIn <= 0) { e.bite = 1; hurtPlayer(e.dashT > 0 ? 2 : 1, e); }
+    e.state = 'walk'; e.dashT = 0;
+    const want = 5.5, orbit = T * .6;
+    const tx = p.x - Math.sin(c.toP + Math.sin(orbit) * .8) * want, tz = p.z - Math.cos(c.toP + Math.sin(orbit) * .8) * want;
+    const k = Math.min(1, dt * 2); e.vx += ((tx - e.x) * 1.1 - e.vx) * k; e.vz += ((tz - e.z) * 1.1 - e.vz) * k;
+    const sp = Math.hypot(e.vx, e.vz); if (sp > 4) { e.vx *= 4 / sp; e.vz *= 4 / sp; }
+    e.tickCd -= dt * c.k; e.dashCd -= dt * c.k;
+    if (e.tickCd <= 0 && e.fadeIn <= 0) { e.tickCd = e.lvl > 2 ? 1.8 : 2.2; ticketFan(e, e.lvl > 2 ? 5 : 3, .32, 7.5); }
+    if (e.dashCd <= 0 && c.dist < 10 && e.fadeIn <= 0) { e.dashCd = rnd(4.2, 5.6); e.state = 'aim'; e.st = .5 * c.tele; UI.dmg(e.x, 3.4, e.z, 'BIGLIETTO!', '#62d4c7'); sfx('tick'); }
   },
-  cuoco(e, dt, c) { if (inMelee(e) || c.dist < 2.0) meleeAI(e, dt, c, { range: 2.0, windup: .5, lunge: 5, dmg: 1 }); else throwerAI(e, dt, c, 'cleaver', e.lvl > 2 ? 2 : 1); },
-  fuochista(e, dt, c) { if (inMelee(e) || c.dist < 2.1) meleeAI(e, dt, c, { range: 2.2, windup: .55, lunge: 5.5, dmg: 2 }); else throwerAI(e, dt, c, 'coal', 1); },
-  guardia(e, dt, c) { meleeAI(e, dt, c, { range: 2.4, windup: .72, lunge: 7.5, dmg: 2, recover: .85 }); },
+  cuoco(e, dt, c) { if (inMelee(e) || c.dist < 2.0) meleeAI(e, dt, c, { range: 2.0, windup: .5, lunge: 5, dmg: 1 }); else throwerAI(e, dt, c, 'cleaver', 1); },
+  fuochista(e, dt, c) { if (inMelee(e) || c.dist < 2.1) meleeAI(e, dt, c, { range: 2.2, windup: .55, lunge: 5.5, dmg: 1 }); else throwerAI(e, dt, c, 'coal', 1); },
+  guardia(e, dt, c) { meleeAI(e, dt, c, { range: 2.4, windup: .72, lunge: 7.5, dmg: 1, recover: .85 }); },
   mimic(e, dt, c) {
     const u = e.model.userData;
     if (e.state === 'sleep') {
@@ -222,9 +235,11 @@ const AI = {
     }
     e.face = turnTo(e.face, c.toP, 9 * dt);
     if (e.state === 'wake') { e.st -= dt; if (e.st <= 0) { e.state = 'walk'; e.cd = .15; } return; }
-    if (e.air) { if (c.dist < e.r + p.r + .25 && e.bite <= 0 && Math.abs(p.y - e.y) < 1) { e.bite = .9; hurtPlayer(2, e); } return; }
-    if (e.landed) { e.landed = false; e.vx *= .15; e.vz *= .15; sfx('land'); Chunks.emit(e.x, .1, e.z, 4, [0x5a5048, 0x3a342e], 2, .07, .5); if (c.dist < 1.6 && e.bite <= 0) { e.bite = .9; hurtPlayer(2, e); } }
+    if (e.air) return;
+    // dopo ogni salto resta a bocca aperta per un attimo: è il momento di colpirlo
+    if (e.landed) { e.landed = false; e.vx *= .15; e.vz *= .15; sfx('land'); Chunks.emit(e.x, .1, e.z, 4, [0x5a5048, 0x3a342e], 2, .07, .5); if (c.dist < e.r + p.r + .35 && e.bite <= 0 && p.y < 1) { e.bite = .9; hurtPlayer(1, e); } if (e.stun <= 0) { e.state = 'rest'; e.st = rnd(.45, .7) * c.tele; } }
     const k = Math.pow(.02, dt); e.vx *= k; e.vz *= k;
+    if (e.state === 'rest') { e.st -= dt; if (e.st <= 0) e.state = 'walk'; return; }
     if (e.cd <= 0) { const s = Math.min(7.5, c.dist * 1.7 + 1); e.vy = 6; e.air = true; e.vx = Math.sin(c.toP) * s; e.vz = Math.cos(c.toP) * s; e.cd = rnd(.3, .55); }
   },
   fantasma(e, dt, c) {
@@ -235,11 +250,11 @@ const AI = {
       if (e.st <= 0) {
         const a = LOOK.yaw + pick([-1, 1]) * rnd(1.0, 2.2), d = rnd(2.8, 3.8);
         e.x = clamp(p.x + Math.sin(a) * d, level.x0 + 1, level.x1 - 1); e.z = clamp(p.z + Math.cos(a) * d, level.z0 + 1, level.z1 - 1);
-        e.state = 'appear'; e.st = .55; Sparks.emit(e.x, 1.2, e.z, 16, 0xb8a0ff, 2, 2, .6, 0); sfx('ghost');
+        e.state = 'appear'; e.st = e.st0 = .55 * c.tele; Sparks.emit(e.x, 1.2, e.z, 16, 0xb8a0ff, 2, 2, .6, 0); sfx('ghost');
       }
       return;
     }
-    if (e.state === 'appear') { e.vx = e.vz = 0; e.st -= dt; e.vis = 1 - Math.max(0, e.st) / .55; if (e.st <= 0) { e.state = 'lunge'; e.st = .5; e.dashA = c.toP; } return; }
+    if (e.state === 'appear') { e.vx = e.vz = 0; e.st -= dt; e.vis = 1 - Math.max(0, e.st) / e.st0; if (e.st <= 0) { e.state = 'lunge'; e.st = .5; e.dashA = c.toP; } return; }
     if (e.state === 'lunge') {
       e.vis = 1; e.st -= dt; e.vx = Math.sin(e.dashA) * 8; e.vz = Math.cos(e.dashA) * 8;
       if (c.dist < e.r + p.r + .3 && e.bite <= 0 && p.y < 1.9) { e.bite = 1; hurtPlayer(1, e); }
@@ -250,42 +265,48 @@ const AI = {
     const side = Math.sin(e.phase * 1.3) * 1.6, tx = p.x + Math.cos(c.toP) * side, tz = p.z - Math.sin(c.toP) * side, a = Math.atan2(tx - e.x, tz - e.z), k = Math.min(1, dt * 2.5);
     e.vx += (Math.sin(a) * e.spd - e.vx) * k; e.vz += (Math.cos(a) * e.spd - e.vz) * k;
     if (c.dist < e.r + p.r + .25 && e.bite <= 0 && p.y < 1.9) { e.bite = 1; hurtPlayer(1, e); }
-    e.blinkCd -= dt; if (e.blinkCd <= 0 && c.dist < 9 && e.fadeIn <= 0) { e.state = 'fade'; e.st = .45; sfx('ghost'); }
+    e.blinkCd -= dt * c.k; if (e.blinkCd <= 0 && c.dist < 9 && e.fadeIn <= 0) { e.state = 'fade'; e.st = .45; sfx('ghost'); }
   },
   ragno(e, dt, c) {
-    if (e.air) { if (c.dist < e.r + p.r + .25 && e.bite <= 0 && Math.abs(p.y - e.y) < 1) { e.bite = .8; hurtPlayer(1, e); } return; }
-    if (e.landed) { e.landed = false; e.state = 'recover'; e.st = .45; e.vx *= .2; e.vz *= .2; }
+    if (e.air) return;
+    // atterrando addosso morde; come i ratti, dopo il morso scappa per un attimo
+    if (e.landed) {
+      e.landed = false; e.vx *= .2; e.vz *= .2;
+      const bit = c.dist < e.r + p.r + .3 && e.bite <= 0 && p.y < .8; if (bit) { e.bite = .9; hurtPlayer(1, e); }
+      e.state = bit && e.stun <= 0 ? 'flee' : 'recover'; e.st = bit ? rnd(.7, 1.0) * c.tele : .45;
+    }
+    if (e.state === 'flee') { e.st -= dt; steer(e, e.x - c.dx, e.z - c.dz, e.spd, c.opt, dt); e.face = turnTo(e.face, Math.atan2(e.vx, e.vz), 10 * dt); if (e.st <= 0) e.state = 'walk'; return; }
     if (e.state === 'crouch') { e.vx *= .7; e.vz *= .7; e.face = turnTo(e.face, c.toP, 8 * dt); e.st -= dt; if (e.st <= 0) { const s = Math.min(10, c.dist * 2.1); e.vy = 5.2; e.air = true; e.vx = Math.sin(c.toP) * s; e.vz = Math.cos(c.toP) * s; sfx('jump'); e.state = 'leap'; } return; }
     if (e.state === 'recover') { e.vx *= .85; e.vz *= .85; e.st -= dt; if (e.st <= 0) e.state = 'walk'; return; }
     e.state = 'walk';
     const off = Math.sin(e.phase * 2.6) * 1.4, tx = p.x + Math.cos(c.toP) * off, tz = p.z - Math.sin(c.toP) * off;
     steer(e, tx, tz, e.spd, c.opt, dt); e.face = turnTo(e.face, Math.atan2(e.vx, e.vz), 10 * dt);
-    if (c.dist < 5 && c.dist > 1.8 && e.cd <= 0) { e.state = 'crouch'; e.st = .38; e.cd = rnd(1.6, 2.4); sfx('tick'); }
-    if (c.dist < e.r + p.r + .2 && e.bite <= 0 && p.y < .8) { e.bite = .9; hurtPlayer(1, e); }
+    if (c.dist < 5 && c.dist > 1.8 && e.cd <= 0) { e.state = 'crouch'; e.st = .38 * c.tele; e.cd = rnd(1.6, 2.4); sfx('tick'); }
+    if (c.dist < e.r + p.r + .2 && e.bite <= 0 && p.y < .8) { e.bite = .9; hurtPlayer(1, e); if (e.stun <= 0) { e.state = 'flee'; e.st = rnd(.7, 1.0) * c.tele; } }
   },
   regina(e, dt, c) {
     const ph2 = e.hp < e.max * .5;
     if (!e.tm) e.tm = { web: 2.5, brood: 7, leap: 6 };
     if (e.air) return;
-    if (e.landed) { e.landed = false; e.state = 'recover'; e.st = .8; e.vx = e.vz = 0; shake = Math.max(shake, .7); sfx('boom'); shockwave(e.x, e.z, 9, 11, 2, 0x9aff70); Chunks.emit(e.x, .1, e.z, 16, [0x3a342e, 0x5a5048, 0x9aff70], 4, .12, .8); }
-    e.tm.web -= dt; e.tm.brood -= dt; e.tm.leap -= dt;
+    if (e.landed) { e.landed = false; e.state = 'recover'; e.st = .8; e.vx = e.vz = 0; shake = Math.max(shake, .7); sfx('boom'); shockwave(e.x, e.z, 9, 11, 1, 0x9aff70); Chunks.emit(e.x, .1, e.z, 16, [0x3a342e, 0x5a5048, 0x9aff70], 4, .12, .8); }
+    e.tm.web -= dt * c.k; e.tm.brood -= dt * c.k; e.tm.leap -= dt * c.k;
     if (e.state === 'spit') { e.vx *= .8; e.vz *= .8; e.face = turnTo(e.face, c.toP, 5 * dt); e.st -= dt; if (e.st <= 0) { const n = ph2 ? 3 : 1, a0 = c.toP, y = 1.2; for (let i = 0; i < n; i++) { const a = a0 + (i - (n - 1) / 2) * .28; spawnProj({ from: 'e', isProj: true, x: e.x + Math.sin(a) * 1.2, y, z: e.z + Math.cos(a) * 1.2, vx: Math.sin(a) * 9, vz: Math.cos(a) * 9, vy: (p.y + 1 - y) * 9 / Math.max(2, c.dist), dmg: 1, kind: 'web', life: 3 }); } sfx('shoot'); e.state = 'walk'; } return; }
-    if (e.state === 'brood') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { summon(e, ['ragno', 'ragno']); sfx('ghost'); e.state = 'walk'; } return; }
+    if (e.state === 'brood') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { summon(e, ph2 ? ['ragno', 'ragno'] : ['ragno']); sfx('ghost'); e.state = 'walk'; } return; }
     if (e.state === 'crouch') { e.vx *= .7; e.vz *= .7; e.face = turnTo(e.face, c.toP, 6 * dt); e.st -= dt; if (e.st <= 0) { const s = Math.min(11, c.dist * 1.25); e.vy = 8.5; e.air = true; e.vx = Math.sin(c.toP) * s; e.vz = Math.cos(c.toP) * s; sfx('jump'); e.state = 'leap'; } return; }
     if (e.state === 'recover') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) e.state = 'walk'; return; }
     e.state = 'walk';
     steer(e, p.x, p.z, c.dist > 4 ? e.spd : 0, c.opt, dt); e.face = turnTo(e.face, c.toP, 4 * dt);
-    if (e.tm.leap <= 0 && c.dist > 3) { e.tm.leap = ph2 ? rnd(5, 6.5) : rnd(7, 9); e.state = 'crouch'; e.st = .75; UI.dmg(e.x, 3.2, e.z, 'SALTA!', '#9aff70'); }
-    else if (e.tm.brood <= 0) { e.tm.brood = ph2 ? 8 : 11; e.state = 'brood'; e.st = .8; }
-    else if (e.tm.web <= 0 && c.dist < 16) { e.tm.web = ph2 ? 2.2 : 3.2; e.state = 'spit'; e.st = .5; }
-    if (c.dist < e.r + p.r + .2 && e.bite <= 0 && p.y < 1.2) { e.bite = 1; hurtPlayer(2, e); }
+    if (e.tm.leap <= 0 && c.dist > 3) { e.tm.leap = ph2 ? rnd(5, 6.5) : rnd(7, 9); e.state = 'crouch'; e.st = .75 * c.tele; UI.dmg(e.x, 3.2, e.z, 'SALTA!', '#9aff70'); }
+    else if (e.tm.brood <= 0) { e.tm.brood = ph2 ? 8 : 11; e.state = 'brood'; e.st = .8 * c.tele; }
+    else if (e.tm.web <= 0 && c.dist < 16) { e.tm.web = ph2 ? 2.2 : 3.2; e.state = 'spit'; e.st = .5 * c.tele; }
+    if (c.dist < e.r + p.r + .2 && e.bite <= 0 && p.y < 1.2) { e.bite = 1; hurtPlayer(1, e); }
   },
   automa(e, dt, c) {
     if (e.state === 'wind') { e.vx *= .8; e.vz *= .8; e.face = turnTo(e.face, c.toP, 5 * dt); e.st -= dt; if (e.st <= 0) { e.state = 'charge'; e.st = 1.1; e.dashA = e.face; sfx('flip'); } return; }
     if (e.state === 'charge') {
-      e.st -= dt; e.vx = Math.sin(e.dashA) * 12; e.vz = Math.cos(e.dashA) * 12;
+      e.st -= dt; e.vx = Math.sin(e.dashA) * 10; e.vz = Math.cos(e.dashA) * 10;
       if (Math.random() < .5) Sparks.emit(e.x, .1, e.z, 2, 0xffc070, 1.5, 1, .3, 2);
-      if (c.dist < e.r + p.r + .25 && e.bite <= 0 && p.y < 1.2) { e.bite = 1; hurtPlayer(2, e); e.state = 'recover'; e.st = .6; }
+      if (c.dist < e.r + p.r + .25 && e.bite <= 0 && p.y < 1.2) { e.bite = 1; hurtPlayer(1, e); e.state = 'recover'; e.st = .6; }
       else if (e.blocked && e.st < 1.02) { e.stun = 1.8; e.state = 'stun'; e.vx = -e.vx * .25; e.vz = -e.vz * .25; sfx('hit'); shake = Math.max(shake, .3); Sparks.emit(e.x, 1, e.z, 26, 0xffc070, 3, 3, .5, 4); UI.dmg(e.x, 2.3, e.z, 'STORDITO', '#ffc070'); }
       else if (e.st <= 0) { e.state = 'recover'; e.st = .5; }
       return;
@@ -293,27 +314,28 @@ const AI = {
     if (e.state === 'recover') { e.vx *= .85; e.vz *= .85; e.st -= dt; if (e.st <= 0) e.state = 'walk'; return; }
     e.state = 'walk';
     steer(e, p.x, p.z, c.dist > 5 ? e.spd : e.spd * .3, c.opt, dt); e.face = turnTo(e.face, c.toP, 4 * dt);
-    if (c.dist < 10 && c.dist > 2.5 && e.cd <= 0) { e.state = 'wind'; e.st = .75; e.cd = rnd(2.4, 3.4); sfx('tick'); }
+    if (c.dist < 10 && c.dist > 2.5 && e.cd <= 0) { e.state = 'wind'; e.st = .9 * c.tele; e.cd = rnd(2.6, 3.6); sfx('tick'); }
     if (c.dist < e.r + p.r + .2 && e.bite <= 0 && p.y < 1) { e.bite = 1; hurtPlayer(1, e); }
   },
   capotreno(e, dt, c) {
     const f = e.hp / e.max, ph = f > .66 ? 1 : f > .33 ? 2 : 3;
     if (!e.tm) e.tm = { tk: 2.5, sum: 8, stomp: 4, dash: 4 };
     if (ph !== e.ph) { if (e.ph) { UI.banner('IL CAPOTRENO', ph === 2 ? 'FISCHIA LA PARTENZA' : 'A TUTTO VAPORE'); shake = .7; sfx('whistle'); e.state = 'roar'; e.st = 1.0; } e.ph = ph; }
-    const tm = e.tm; tm.tk -= dt; tm.sum -= dt; tm.stomp -= dt; tm.dash -= dt;
+    const tm = e.tm; tm.tk -= dt * c.k; tm.sum -= dt * c.k; tm.stomp -= dt * c.k; tm.dash -= dt * c.k;
     if (e.state === 'roar') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (Math.random() < .5) Puffs.emit(e.x, 3.2, e.z, 1, .9); if (e.st <= 0) e.state = 'walk'; return; }
-    if (e.state === 'cast') { e.vx *= .8; e.vz *= .8; e.face = turnTo(e.face, c.toP, 5 * dt); e.st -= dt; if (e.st <= 0) { ticketFan(e, ph === 1 ? 5 : 7, ph === 3 ? .2 : .26, 8.5); if (ph >= 2 && !e.second) { e.second = true; e.st = .4; return; } e.second = false; e.state = 'walk'; } return; }
-    if (e.state === 'stomp') { e.vx *= .7; e.vz *= .7; e.st -= dt; if (e.st <= 0) { shockwave(e.x, e.z, 8, 15, 2, 0xffb060); shake = .7; sfx('boom'); Puffs.emit(e.x, .4, e.z, 8, 1.4); e.state = 'recover'; e.st = .6; } return; }
+    if (e.state === 'cast') { e.vx *= .8; e.vz *= .8; e.face = turnTo(e.face, c.toP, 5 * dt); e.st -= dt; if (e.st <= 0) { ticketFan(e, ph === 1 ? 3 : 5, ph === 3 ? .24 : .3, 8.5); if (ph === 3 && !e.second) { e.second = true; e.st = .4; return; } e.second = false; e.state = 'walk'; } return; }
+    if (e.state === 'stomp') { e.vx *= .7; e.vz *= .7; e.st -= dt; if (e.st <= 0) { shockwave(e.x, e.z, 8, 15, 1, 0xffb060); shake = .7; sfx('boom'); Puffs.emit(e.x, .4, e.z, 8, 1.4); e.state = 'recover'; e.st = .6; } return; }
     if (e.state === 'whistle') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { summon(e, ph === 1 ? ['ratto', 'ratto'] : ph === 2 ? ['scheletro', 'ratto'] : ['fuochista', 'scheletro']); e.state = 'walk'; } return; }
+    if (e.state === 'aim') { e.vx *= .85; e.vz *= .85; e.face = turnTo(e.face, c.toP, 5 * dt); e.st -= dt; if (e.st <= 0) { e.state = 'dash'; e.st = .6; e.dashA = c.toP; sfx('ghost'); } return; }
     if (e.state === 'dash') { e.st -= dt; e.vx = Math.sin(e.dashA) * 12; e.vz = Math.cos(e.dashA) * 12; if (Math.random() < .6) Puffs.emit(e.x, 1, e.z, 1, .8); if (c.dist < e.r + p.r + .3 && e.bite <= 0) { e.bite = 1; hurtPlayer(2, e); } if (e.st <= 0 || (e.blocked && e.st < .5)) { e.state = 'recover'; e.st = .5; } return; }
     if (inMelee(e)) { meleeAI(e, dt, c, { range: 2.9, windup: ph === 3 ? .45 : .6, lunge: 7, dmg: 2, recover: .6 }); return; }
     e.state = 'walk';
     steer(e, p.x, p.z, c.dist > 2.6 ? e.spd * (ph === 3 ? 1.3 : 1) : 0, c.opt, dt); e.face = turnTo(e.face, c.toP, 5 * dt);
-    if (c.dist < 2.9 && e.cd <= 0) { e.state = 'windup'; e.st = ph === 3 ? .45 : .6; sfx('tick'); }
-    else if (ph >= 2 && tm.stomp <= 0) { tm.stomp = ph === 3 ? 4.5 : 6.5; e.state = 'stomp'; e.st = .8; UI.dmg(e.x, 4.4, e.z, 'SALTA!', '#ffb060'); }
-    else if (ph === 3 && tm.dash <= 0 && c.dist > 4) { tm.dash = 4; e.state = 'dash'; e.st = .6; e.dashA = c.toP; UI.dmg(e.x, 4.4, e.z, 'BIGLIETTO!', '#62d4c7'); sfx('ghost'); }
+    if (c.dist < 2.9 && e.cd <= 0) { e.state = 'windup'; e.st = (ph === 3 ? .45 : .6) * c.tele; sfx('tick'); }
+    else if (ph >= 2 && tm.stomp <= 0) { tm.stomp = ph === 3 ? 4.5 : 6.5; e.state = 'stomp'; e.st = .8 * c.tele; UI.dmg(e.x, 4.4, e.z, 'SALTA!', '#ffb060'); }
+    else if (ph === 3 && tm.dash <= 0 && c.dist > 4) { tm.dash = 4; e.state = 'aim'; e.st = .5 * c.tele; UI.dmg(e.x, 4.4, e.z, 'BIGLIETTO!', '#62d4c7'); sfx('tick'); }
     else if (tm.sum <= 0) { tm.sum = ph === 3 ? 10 : 13; e.state = 'whistle'; e.st = .9; sfx('whistle'); }
-    else if (tm.tk <= 0 && c.dist > 2.6) { tm.tk = ph === 1 ? 2.6 : 2.0; e.state = 'cast'; e.st = .45; }
+    else if (tm.tk <= 0 && c.dist > 2.6) { tm.tk = ph === 1 ? 2.6 : 2.0; e.state = 'cast'; e.st = .45 * c.tele; }
   }
 };
 
@@ -326,20 +348,23 @@ function poseHumanoid(e, u, spd) {
   if (s === 'windup') { u.armR.rotation.x = -2.7; u.upper.rotation.y = .6; }
   else if (s === 'strike') { u.armR.rotation.x = -1.3; u.upper.rotation.y = -.9; }
   else if (s === 'draw') { u.armL.rotation.x = -1.55; u.armR.rotation.x = -1.4; u.upper.rotation.y = -.25; }
-  else if (s === 'throw') { const t = 1 - e.st / .6; u.armR.rotation.x = -2.9 + t * .4; u.upper.rotation.y = .5; u.upper.rotation.x = -.15; }
+  else if (s === 'throw') { const t = 1 - e.st / (e.st0 || .6); u.armR.rotation.x = -2.9 + t * .4; u.upper.rotation.y = .5; u.upper.rotation.x = -.15; }
   else if (s === 'cast') { u.armL.rotation.x = -2.2; u.armR.rotation.x = -2.0; u.upper.rotation.x = -.15; }
   else if (s === 'stomp') { u.armL.rotation.x = -3.0 + Math.sin(T * 30) * .05; u.upper.rotation.x = -.2; }
   else if (s === 'whistle') { u.armR.rotation.set(-2.5, 0, .4); u.head.rotation.x = -.3; }
   else if (s === 'roar') { u.head.rotation.x = -.5; u.armL.rotation.set(-.6, 0, -.6); u.armR.rotation.set(-.6, 0, .6); u.upper.rotation.x = -.2; }
   else if (s === 'dash') { u.upper.rotation.x = .4; u.armL.rotation.x = .6; u.armR.rotation.x = .6; }
+  else if (s === 'aim') { u.armR.rotation.x = -2.4; u.upper.rotation.x = -.15; }
   if (u.weapon) u.weapon.rotation.x = u.wtype === 'arco' || u.wtype === 'balestra' ? -1.45 : -.6;
   if (u.shield) { const down = e.stun > 0 || s === 'strike' || s === 'recover'; u.shield.rotation.x += ((down ? 1.0 : 0) - u.shield.rotation.x) * .2; u.shield.position.y += ((down ? .02 : .3) - u.shield.position.y) * .2; }
 }
 const POSER = {
   ratto(e, u, spd) { u.body.position.y = Math.abs(Math.sin(e.phase * 18)) * .05 * Math.min(1, spd / 2); u.tail.rotation.y = Math.sin(e.phase * 10) * .5; u.legs.forEach((l, i) => l.rotation.x = Math.sin(e.phase * 20 + (i % 2) * Math.PI) * .7 * Math.min(1, spd / 2)); },
   bigliettaio(e, u) {
-    u.armL.rotation.x = Math.sin(T * 2) * .3 - .3; u.armR.rotation.x = e.tickCd < .4 ? -1.6 : -.4 + Math.sin(T * 2 + 1) * .2;
-    u.body.rotation.x = e.dashT > 0 ? .5 : 0; u.light.intensity = 2.2 + Math.sin(T * 9) * .3;
+    const tired = e.state === 'tired', aim = e.state === 'aim';
+    u.armL.rotation.x = tired ? .3 : Math.sin(T * 2) * .3 - .3; u.armR.rotation.x = aim ? -2.4 : tired ? .3 : e.tickCd < .4 ? -1.6 : -.4 + Math.sin(T * 2 + 1) * .2;
+    u.body.rotation.x += ((e.state === 'dash' ? .5 : tired ? -.35 : aim ? -.15 : 0) - u.body.rotation.x) * .2; u.body.rotation.z = tired ? Math.sin(T * 5) * .12 : 0;
+    u.light.intensity = tired ? .9 + Math.sin(T * 9) * .2 : 2.2 + Math.sin(T * 9) * .3;
     e.model.traverse(o => { if (o.isMesh && o.material.transparent) o.material.opacity = (o.material === MAT.ghost ? .62 : .85) * (e.fadeIn > 0 ? 1 - e.fadeIn / 1.2 : 1); });
   },
   mimic(e, u, spd) {

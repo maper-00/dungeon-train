@@ -2,57 +2,65 @@
 // waves: [tipo, livello] per ondata; subs: sottotitolo del cartello di ogni ondata; shop: a vagone libero arriva la bottega
 const WAGONS = [
   { name: 'Carrozza passeggeri', sign: 'PASSEGGERI', wx: 'TETTO APERTO', build: () => buildPassenger(),
-    waves: [[['ratto', 1], ['ratto', 1], ['ratto', 1], ['ratto', 1], ['ratto', 1]], [['scheletro', 1], ['ratto', 2], ['arciere', 1], ['scheletro', 2], ['ratto', 1]], [['arciere', 2], ['scheletro', 2], ['ratto', 2], ['arciere', 1], ['bigliettaio', 3]]],
+    waves: [[['ratto', 1], ['ratto', 1], ['ratto', 1]], [['scheletro', 1], ['ratto', 1], ['scheletro', 1], ['arciere', 1]], [['scheletro', 1], ['bigliettaio', 1]]],
     subs: ['SCENDONO DAL TETTO SQUARCIATO', 'SCENDONO DAL TETTO SQUARCIATO', 'IL BIGLIETTAIO STA ARRIVANDO'],
-    intro: ['Biglietto, prego.', '...Ah, non ce l\'hai. Peccato. I passeggeri di questa carrozza non sono molto ospitali.'],
+    intro: ['Biglietto, prego.', '...Ah, non ce l\'hai. Peccato. I passeggeri di questa carrozza non sono molto ospitali.', 'Un consiglio: quando l\'anello ai piedi di un nemico lampeggia, sta per colpire. Spostati, oppure para al momento giusto.'],
     outro: ['Hai ripulito il primo vagone. Notevole.', 'Ne mancano nove fino alla locomotiva. Il prossimo è la carrozza ristorante: non toccare il pane, è del 1897.'] },
   { name: 'Carrozza ristorante', sign: 'RISTORANTE', wx: 'LAMPADARI ACCESI', build: () => buildDining(2),
-    waves: [[['ratto', 1], ['scheletro', 1], ['cuoco', 1], ['ratto', 1], ['scheletro', 1]], [['cuoco', 1], ['scheletro', 2], ['ratto', 2], ['cuoco', 1], ['ratto', 1], ['scheletro', 1]], [['cuoco', 2], ['cuoco', 2], ['scheletro', 2], ['arciere', 1], ['ratto', 2], ['scheletro', 2]]],
+    waves: [[['scheletro', 1], ['cuoco', 1], ['ratto', 1], ['scheletro', 1]], [['cuoco', 1], ['scheletro', 1], ['ratto', 1], ['cuoco', 1], ['ratto', 1]], [['cuoco', 2], ['scheletro', 2], ['arciere', 1], ['cuoco', 1], ['scheletro', 1]]],
     subs: ['ESCONO DALLE CUCINE', 'IL SERVIZIO CONTINUA', 'ARRIVA IL DESSERT'],
     intro: ['Benvenuto nella carrozza ristorante. Il menù di stasera: tu.', 'Lo chef è un po\' nervoso. Non lamentarti del servizio.'],
     outro: ['Conto pagato. Niente mancia, vedo.', 'Avanti il bagagliaio. Attento ai bauli: alcuni mordono.'] },
   { name: 'Bagagliaio', sign: 'BAGAGLIAIO', wx: 'LANTERNE A DONDOLO', shop: true, build: () => buildBaggage(3),
-    waves: [[['ratto', 2], ['ratto', 2], ['mimic', 2], ['ratto', 2], ['arciere', 2]], [['mimic', 2], ['mimic', 2], ['scheletro', 2], ['ratto', 2], ['arciere', 2]], [['mimic', 2], ['arciere', 2], ['scheletro', 2], ['mimic', 2], ['ratto', 2], ['cuoco', 2], ['scheletro', 2]]],
+    waves: [[['ratto', 2], ['mimic', 2], ['ratto', 2], ['arciere', 2]], [['mimic', 2], ['scheletro', 2], ['ratto', 2], ['arciere', 2]], [['mimic', 2], ['arciere', 2], ['scheletro', 2], ['mimic', 2], ['cuoco', 2]]],
     subs: ['SBUCANO DAI BAGAGLI', 'QUALCOSA SI MUOVE TRA LE CASSE', 'I BAULI HANNO FAME'],
     intro: ['Il bagagliaio. Qui finisce tutto quello che i passeggeri dimenticano.', 'Anche i passeggeri, a volte.'],
     outro: ['Ordine ristabilito. Il mio robot di fiducia ha aperto bottega, se hai monete da spendere.', 'Poi c\'è il vagone letto. Cammina piano: i passeggeri dormono. Più o meno.'] },
   { name: 'Vagone letto', sign: 'VAGONE LETTO', wx: 'LUCI DA NOTTE', build: () => buildSleeper(4),
-    waves: [[['fantasma', 2], ['scheletro', 2], ['fantasma', 2], ['ratto', 2]], [['fantasma', 2], ['arciere', 2], ['fantasma', 2], ['scheletro', 2], ['fantasma', 2]], [['fantasma', 2], ['fantasma', 3], ['arciere', 2], ['scheletro', 3], ['fantasma', 3], ['cuoco', 2]]],
+    waves: [[['fantasma', 2], ['scheletro', 2], ['fantasma', 2]], [['fantasma', 2], ['arciere', 2], ['fantasma', 2], ['scheletro', 2]], [['fantasma', 2], ['fantasma', 3], ['arciere', 2], ['scheletro', 2], ['fantasma', 2], ['cuoco', 2]]],
     subs: ['I DORMIENTI SI SVEGLIANO', 'BUSSANO DALLE CUCCETTE', 'NESSUNO DORME PIÙ'],
     intro: ['Shh. Vagone letto. I passeggeri riposano da centotrent\'anni.', 'Se qualcuno ti passa attraverso, non è maleducazione: è un fantasma.'],
     outro: ['Silenzio, finalmente.', 'Più avanti c\'è la serra. Qualcosa ha fatto il nido tra le orchidee. Qualcosa con molte zampe.'] },
   { name: 'Serra panoramica', sign: 'SERRA', wx: 'TETTO DI VETRO', build: () => buildGreenhouse(5),
-    waves: [[['ragno', 2], ['ragno', 2], ['ragno', 2], ['arciere', 2], ['ragno', 2]], [['ragno', 2], ['cuoco', 2], ['ragno', 3], ['ragno', 2], ['scheletro', 3], ['ragno', 2]], [['regina', 3], ['ragno', 2], ['ragno', 2]]],
+    waves: [[['ragno', 2], ['arciere', 2], ['ragno', 2]], [['ragno', 2], ['cuoco', 2], ['ragno', 2], ['scheletro', 2]], [['regina', 3], ['ragno', 2]]],
     subs: ['CALANO DAL SOFFITTO', 'IL NIDO SI AGITA', 'LA REGINA DELLE SERRE'],
     intro: ['La serra panoramica. Un tempo ci si prendeva il tè tra le palme.', 'Ora si prende quello che cade dal soffitto.'],
     outro: ['La regina è caduta. Le orchidee ringraziano.', 'Il prossimo è il vagone del carbone, a cielo aperto. Prendi un ombrello.'] },
   { name: 'Vagone del carbone', sign: 'CARBONE', wx: 'A CIELO APERTO', shop: true, build: () => buildCoal(6),
-    waves: [[['fuochista', 3], ['scheletro', 3], ['ratto', 3], ['fuochista', 3]], [['fuochista', 3], ['ragno', 3], ['scheletro', 3], ['arciere', 3], ['fuochista', 3]], [['fuochista', 3], ['fuochista', 3], ['scheletro', 3], ['ragno', 3], ['arciere', 3], ['ratto', 3]]],
+    waves: [[['fuochista', 3], ['scheletro', 3], ['ratto', 3]], [['fuochista', 3], ['ragno', 3], ['scheletro', 3], ['arciere', 3]], [['fuochista', 3], ['fuochista', 3], ['scheletro', 3], ['ragno', 3], ['ratto', 3]]],
     subs: ['SALTANO GIÙ DAL TENDER', 'BRACI NELL\'ARIA', 'TUTTI I FUOCHISTI IN PIEDI'],
     intro: ['Il vagone del carbone. Il cuore nero del treno.', 'I fuochisti non hanno mai smesso di spalare. Non smettono nemmeno per te.'],
     outro: ['Ben fatto. Sei coperto di fuliggine, ma vivo.', 'Il robot ha riaperto bottega. Poi il vagone blindato: c\'è il tesoro della compagnia, e le guardie lo sanno.'] },
   { name: 'Vagone blindato', sign: 'BLINDATO', wx: 'SOTTO CHIAVE', build: () => buildVault(7),
-    waves: [[['guardia', 3], ['arciere', 3], ['ratto', 3], ['guardia', 3]], [['guardia', 3], ['mimic', 3], ['arciere', 3], ['guardia', 3], ['cuoco', 3]], [['guardia', 3], ['guardia', 3], ['mimic', 3], ['arciere', 3], ['fuochista', 3], ['guardia', 3]]],
+    waves: [[['guardia', 3], ['arciere', 3], ['ratto', 3]], [['guardia', 3], ['mimic', 3], ['arciere', 3], ['cuoco', 3]], [['guardia', 3], ['guardia', 3], ['arciere', 3], ['fuochista', 3], ['mimic', 3]]],
     subs: ['ALLARME!', 'RINFORZI DALLA CASSAFORTE', 'L\'ULTIMA RONDA'],
     intro: ['Il vagone blindato. Oro, banconote, gioielli. E guardie che non vanno mai in pensione.', 'Tocca qualcosa e scatta l\'allarme. Ah, è già scattato.'],
     outro: ['Il tesoro è salvo. Più o meno.', 'Avanti l\'officina. Gli automi che ci lavorano hanno la molla un po\' tirata.'] },
   { name: 'Officina a vapore', sign: 'OFFICINA', wx: 'VAPORE E INGRANAGGI', build: () => buildWorkshop(8),
-    waves: [[['automa', 3], ['automa', 3], ['ratto', 3], ['fuochista', 3]], [['automa', 3], ['guardia', 3], ['automa', 4], ['ragno', 3], ['arciere', 3]], [['automa', 4], ['automa', 4], ['guardia', 4], ['fuochista', 4], ['automa', 4], ['ragno', 4]]],
+    waves: [[['automa', 3], ['ratto', 3], ['fuochista', 3]], [['automa', 3], ['guardia', 3], ['ragno', 3], ['arciere', 3]], [['automa', 4], ['guardia', 4], ['fuochista', 4], ['automa', 4]]],
     subs: ['SI CARICANO GLI AUTOMI', 'CATENA DI MONTAGGIO', 'PRESSIONE AL MASSIMO'],
     intro: ['L\'officina. Qui si riparano i pezzi del treno.', 'Gli automi a molla ti considerano un pezzo da riparare.'],
     outro: ['Ingranaggi fermi. Ottimo lavoro, meccanico.', 'Il prossimo è il salone di prima classe. Dopo, la locomotiva.'] },
   { name: 'Salone di prima classe', sign: 'SALONE', wx: 'PRIMA CLASSE', shop: true, build: () => buildLounge(9),
-    waves: [[['fantasma', 4], ['scheletro', 4], ['guardia', 4], ['arciere', 4], ['cuoco', 4]], [['automa', 4], ['ragno', 4], ['fuochista', 4], ['fantasma', 4], ['mimic', 4], ['guardia', 4]], [['bigliettaio', 4], ['fantasma', 4], ['arciere', 4], ['scheletro', 4]]],
+    waves: [[['fantasma', 4], ['scheletro', 4], ['guardia', 4], ['arciere', 4]], [['automa', 4], ['ragno', 4], ['fuochista', 4], ['fantasma', 4], ['mimic', 4]], [['bigliettaio', 5], ['fantasma', 4], ['arciere', 4], ['scheletro', 4]]],
     subs: ['LA PRIMA CLASSE SI ALZA', 'NIENTE BIGLIETTO, NIENTE PIANOFORTE', 'IL BIGLIETTAIO È TORNATO'],
     intro: ['Il salone di prima classe. Il mio preferito.', 'Mettiti comodo. Il mio bigliettaio ha chiesto di salutarti di persona. Di nuovo.'],
     outro: ['Anche il salone è tuo. Il robot ti aspetta con la bottega, per l\'ultima volta.', 'La porta davanti a te dà sulla locomotiva. Ti sto aspettando. Porta il biglietto.'] },
   { name: 'Locomotiva', sign: 'LOCOMOTIVA', wx: 'FUOCO E VAPORE', build: () => buildLoco(10),
-    waves: [[['scheletro', 4], ['ratto', 4], ['fuochista', 4], ['ratto', 4], ['guardia', 4]], [['capotreno', 4]]],
+    waves: [[['scheletro', 4], ['ratto', 4], ['fuochista', 4], ['guardia', 4]], [['capotreno', 4]]],
     subs: ['LA SCORTA DEL CAPOTRENO', 'IL CAPOTRENO'],
     intro: ['Eccoti. Finalmente ci vediamo in faccia.', 'Questo treno non si ferma, passeggero. Non si è mai fermato. Ho perso la chiave del freno tanti anni fa.', 'Vediamo se ce l\'hai tu.'],
     outro: ['...Il freno. È lì, accanto alla caldaia.', 'Tiralo, passeggero. Fallo fermare.'] }
 ];
 const BOSS_WAGONS = [1, 5, 9, 10];
+// ritmo dei nemici vagone per vagone: nei primi sono più lenti, attaccano meno spesso, caricano i colpi più a lungo,
+// tirano proiettili più lenti e in mischia attaccano uno alla volta; la differenza si riduce fino alla locomotiva
+const EASE = [1, .88, .76, .66, .58, .5, .43, .37, .31, .25];
+function paceFor(n) {
+  const k = EASE[n - 1] === undefined ? 0 : EASE[n - 1];
+  return { k, spd: 1 - .2 * k, cd: 1 + .7 * k, tele: 1 + .5 * k, proj: 1 - .25 * k, slots: k > .6 ? 1 : 2 };
+}
+let PACE = paceFor(1);
 function wagonInfo(L, n) {
   const W = WAGONS[n - 1]; L.n = n; L.name = W.name; L.tag = 'VAGONE / ' + String(n).padStart(2, '0'); L.wx = W.wx;
   L.obj = n < WAGONS.length ? 'Sopravvivi alle ondate e apri la porta del Vagone ' + (n + 1) : 'Sconfiggi il capotreno e ferma il treno';

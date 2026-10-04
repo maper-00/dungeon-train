@@ -158,7 +158,7 @@ body.aiming #gl{cursor:none}
 .ghost:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .best{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px}
 .blist{display:flex;flex-direction:column;gap:6px;max-height:min(440px,60vh);overflow:auto;padding-right:4px}
-.shop{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.shop{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .shop .item{display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:6px;padding:12px;font-size:13px}
 .shop .item b{font-size:14px}
 .shop .item .meta{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.06em}
@@ -1191,8 +1191,8 @@ function thunder(far) {
 /* ================= dati di gioco ================= */
 const CLASSES = [
   { id: 'cavaliere', name: 'Cavaliere', hp: 6, speed: 5.3, weapon: 'spada', perk: 'parry', desc: 'Più vita. La finestra di parry è più ampia.' },
-  { id: 'ranger', name: 'Ranger', hp: 4, speed: 6.3, weapon: 'arco', perk: 'slide', desc: 'Più veloce. Scivolata più lunga e potente.' },
-  { id: 'mago', name: 'Mago', hp: 4, speed: 5.7, weapon: 'bastone', perk: 'pierce', desc: 'I dardi trapassano i nemici, il fulmine rimbalza una volta in più.' }
+  { id: 'ranger', name: 'Ranger', hp: 5, speed: 6.3, weapon: 'arco', perk: 'slide', desc: 'Più veloce. Scivolata più lunga e potente.' },
+  { id: 'mago', name: 'Mago', hp: 5, speed: 5.7, weapon: 'bastone', perk: 'pierce', desc: 'I dardi trapassano i nemici, il fulmine rimbalza una volta in più.' }
 ];
 // kind: melee (mischia), ranged (a distanza), magic. style cambia il gesto: thrust affondo, smash schianto, gun da imbracciare, chain fulmine, fire palla di fuoco
 const WT = {
@@ -1221,28 +1221,28 @@ function validWeapon(w) { return w && WT[w.type] && typeof w.dmg === 'number' &&
 // r raggio, hit [centro, mezza altezza] del bersaglio, hph altezza della barra vita, ring scala dell'anello, chunk colori delle schegge, where primo vagone in cui compare
 const MOBS = {
   ratto: { name: 'Ratto del Bagagliaio', hp: 4, wpn: ['pugnale'], mult: { slide: 3, ascia: 1.5, falce: 1.5, trombone: 1.5 }, r: .4, hit: [.32, .36], hph: 1.05, ring: .75, chunk: [0x625852, 0xc4867f, 0x3a302c], rat: true, where: 1,
-    weak: 'Una scivolata lo travolge (danno x3). Asce, falci e trombone lo finiscono subito. Passa sotto sedili e tavoli.',
+    weak: 'Morde e poi scappa: colpiscilo quando torna alla carica. Una scivolata lo travolge (danno x3). Asce, falci e trombone lo finiscono subito. Passa sotto sedili e tavoli.',
     lore: 'Nati nei bagagli dimenticati. Rubano i coltelli dalla carrozza ristorante e non li restituiscono più.' },
   scheletro: { name: 'Passeggero Scheletrico', hp: 9, wpn: ['spada', 'ascia', 'sciabola'], mult: { ascia: 1.5, martello: 1.8 }, r: .45, hit: [1.0, 1.0], hph: 2.35, ring: .9, chunk: [0xd8ccb0, 0xc8bc9e, 0x2a2020], where: 1,
     weak: 'Le armi pesanti gli spezzano le ossa (Ascia x1.5, Martello x1.8). Para il fendente quando alza l\'arma per stordirlo.',
     lore: 'Ha perso la sua fermata. Anzi, tutte le fermate. Aspetta ancora che il controllore gli timbri il biglietto.' },
-  arciere: { name: 'Scheletro Arciere', hp: 6, wpn: ['arco', 'balestra'], mult: { reflect: 2, bastone: 1.3, balestra: 1.4 }, r: .45, hit: [1.0, 1.0], hph: 2.35, ring: .9, chunk: [0xd8ccb0, 0x8e2630, 0x2a2020], where: 1,
+  arciere: { name: 'Scheletro Arciere', hp: 6, wpn: ['arco', 'balestra'], wpnLvl: { balestra: 3 }, mult: { reflect: 2, bastone: 1.3, balestra: 1.4 }, r: .45, hit: [1.0, 1.0], hph: 2.35, ring: .9, chunk: [0xd8ccb0, 0x8e2630, 0x2a2020], where: 1,
     weak: 'Ribalta un tavolo e riparati dietro. Le frecce parate tornano indietro con danno doppio. La balestra lo trafigge (x1.4).',
     lore: 'Tira dal fondo del vagone. Dicono fosse campione di tiro, prima di salire sul treno sbagliato.' },
-  bigliettaio: { name: 'Bigliettaio Spettrale', hp: 34, wpn: ['bastone', 'tomo'], mult: { bastone: 1.5, tomo: 1.5, reflect: 2 }, elite: true, fly: true, r: .65, hit: [1.35, 1.25], hph: 3.0, ring: 1.3, chunk: [0x62d4c7, 0x1f2a52, 0xc8963c], where: 1,
-    weak: 'La magia lo ferisce di più (Bastone e Tomo x1.5). Para i biglietti per rispedirglieli.',
+  bigliettaio: { name: 'Bigliettaio Spettrale', hp: 26, wpn: ['bastone', 'tomo'], mult: { bastone: 1.5, tomo: 1.5, reflect: 2 }, elite: true, fly: true, r: .65, hit: [1.35, 1.25], hph: 3.0, ring: 1.3, chunk: [0x62d4c7, 0x1f2a52, 0xc8963c], where: 1,
+    weak: 'Prima dello scatto si ferma e grida «BIGLIETTO!»: spostati di lato. Dopo lo scatto resta stordito a mezz\'aria, ed è il momento di colpirlo. La magia lo ferisce di più (Bastone e Tomo x1.5). Para i biglietti per rispedirglieli.',
     lore: 'Il braccio destro del capotreno. Timbra biglietti che nessuno ha comprato. È molto zelante, anche da morto.' },
   cuoco: { name: 'Cuoco Scheletrico', hp: 8, wpn: ['sciabola', 'pugnale'], mult: { reflect: 2, sciabola: 1.5 }, r: .45, hit: [1.0, 1.0], hph: 2.6, ring: .9, chunk: [0xd8ccb0, 0xeeeae0, 0x8e2630], where: 2,
     weak: 'Lancia mannaie a parabola: parale e tornano indietro col danno doppio. Teme le sciabole (x1.5). Da vicino si gira lentamente.',
     lore: 'Cucina per una carrozza ristorante dove nessuno ordina più. Lancia mannaie a chi non lascia la mancia.' },
   mimic: { name: 'Baule Mimetico', hp: 12, wpn: ['martello', 'tomo', 'trombone', 'lancia', 'falce', 'lanterna'], mult: { martello: 1.5, lanterna: 1.5 }, r: .55, hit: [.45, .45], hph: 1.4, ring: 1.0, chunk: [0x6b4428, 0xc8963c, 0x9b2f35], jumps: true, loot: .35, where: 3,
-    weak: 'Finge di essere un baule. Colpiscilo prima che si svegli: il primo colpo fa danno doppio. Martello e fuoco lo aprono in due (x1.5).',
+    weak: 'Finge di essere un baule. Colpiscilo prima che si svegli: il primo colpo fa danno doppio. Dopo ogni salto resta a bocca aperta per un attimo. Martello e fuoco lo aprono in due (x1.5).',
     lore: 'Un baule smarrito che ha deciso di non farsi ritrovare. Dentro tiene armi rare e non le cede volentieri.' },
   fantasma: { name: 'Passeggero Fantasma', hp: 7, wpn: ['falce', 'bastone', 'tomo'], mult: { bastone: 1.5, tomo: 1.5, lanterna: 1.5, falce: 1.5 }, fly: true, r: .5, hit: [1.2, .9], hph: 2.4, ring: 1.0, chunk: [0xb8a8ff, 0x4a3a80, 0xe8e0ff], where: 4,
     weak: 'Quando svanisce non si può colpire: aspetta che riappaia e colpiscilo durante lo scatto. Magia, fuoco e falce lo feriscono di più (x1.5).',
     lore: 'Dorme ancora nel vagone letto e si sveglia solo per lamentarsi del rumore. Il rumore sei tu.' },
   ragno: { name: 'Ragno delle Serre', hp: 5, wpn: ['pugnale', 'balestra'], mult: { falce: 1.6, trombone: 1.6, slide: 2 }, r: .45, hit: [.35, .35], hph: 1.0, ring: .85, chunk: [0x2a2430, 0x7ae070, 0x4a3a50], rat: true, jumps: true, where: 5,
-    weak: 'Si accuccia prima di saltare: scansalo di lato o paralo. Falce e trombone lo spazzano via (x1.6).',
+    weak: 'Si accuccia prima di saltare: scansalo di lato o paralo. Dopo il morso scappa e torna. Falce e trombone lo spazzano via (x1.6).',
     lore: 'Arrivato con una cassa di orchidee esotiche. Le orchidee sono morte, lui no.' },
   regina: { name: 'Regina delle Serre', hp: 58, wpn: ['falce', 'balestra', 'lanterna'], mult: { lanterna: 1.5, falce: 1.4, reflect: 2 }, elite: true, boss: true, r: 1.1, hit: [.75, .7], hph: 2.2, ring: .9, chunk: [0x3a2050, 0x9aff70, 0x6a3a90], jumps: true, where: 5,
     weak: 'Le palle di ragnatela parate tornano indietro (x2) e il fuoco la brucia (x1.5). Quando atterra dal salto manda un\'onda a terra: saltala.',
@@ -1251,12 +1251,12 @@ const MOBS = {
     weak: 'Lancia carbone ardente che lascia fiamme a terra: non restarci sopra. Il carbone parato torna indietro (x2). La lancia lo tiene a distanza (x1.5).',
     lore: 'Ha spalato carbone per cent\'anni. Adesso spala anche i passeggeri.' },
   guardia: { name: 'Guardia Corazzata', hp: 16, wpn: ['lancia', 'martello'], mult: { martello: 2 }, shield: true, r: .5, hit: [1.0, 1.0], hph: 2.5, ring: 1.0, chunk: [0xa7b0ba, 0xd8ccb0, 0xc8963c], where: 7,
-    weak: 'Lo scudo para i colpi frontali. Colpisci di lato o alle spalle, oppure para il suo affondo: stordita abbassa lo scudo. Il martello lo sfonda (x2).',
+    weak: 'Lo scudo assorbe gran parte dei colpi frontali. Colpisci di lato o alle spalle, subito dopo il suo affondo, oppure para: stordita abbassa lo scudo. Il martello lo sfonda (x2).',
     lore: 'Sorveglia un tesoro che nessuno ricorda di aver caricato. Non ha mai preso un giorno di ferie.' },
   automa: { name: 'Automa a Molla', hp: 12, wpn: ['trombone', 'balestra'], mult: { tomo: 1.6, martello: 1.4 }, r: .5, hit: [.8, .8], hph: 1.95, ring: 1.0, chunk: [0xb8693a, 0xc8963c, 0x2a2d31], where: 8,
     weak: 'Prima della carica si ferma e gira la chiave: fatti da parte e lascialo sbattere contro un ostacolo, resterà stordito. Il fulmine lo manda in tilt (x1.6).',
     lore: 'Costruito per servire il tè in prima classe. Qualcuno gli ha dato troppa corda.' },
-  capotreno: { name: 'Il Capotreno', hp: 120, wpn: ['tomo', 'lanterna', 'falce'], mult: { reflect: 2, tomo: 1.25, martello: 1.25 }, elite: true, boss: true, r: .8, hit: [1.5, 1.5], hph: 3.6, ring: 1.0, chunk: [0x1f2a52, 0xd8ccb0, 0xc8963c], where: 10,
+  capotreno: { name: 'Il Capotreno', hp: 100, wpn: ['tomo', 'lanterna', 'falce'], mult: { reflect: 2, tomo: 1.25, martello: 1.25 }, elite: true, boss: true, r: .8, hit: [1.5, 1.5], hph: 3.6, ring: 1.0, chunk: [0x1f2a52, 0xd8ccb0, 0xc8963c], where: 10,
     weak: 'Quando batte la lanterna a terra parte un\'onda: saltala. I biglietti parati tornano indietro (x2). Parare la lanternata lo stordisce per un attimo.',
     lore: 'La voce dell\'altoparlante. Ha costruito un treno che non si ferma mai, poi ha perso la chiave del freno. Forse ce l\'hai tu.' }
 };
@@ -1834,25 +1834,27 @@ function meleeAI(e, dt, c, o) {
   else {
     e.state = 'walk';
     steer(e, p.x, p.z, c.dist > o.range * .76 ? e.spd : 0, c.opt, dt); e.face = turnTo(e.face, c.toP, 6 * dt);
-    if (c.dist < o.range && e.cd <= 0 && p.y < 1.6) { e.state = 'windup'; e.st = o.windup; sfx('tick'); }
+    if (c.dist < o.range && e.cd <= 0 && p.y < 1.6 && attackers(e) < PACE.slots) { e.state = 'windup'; e.st = o.windup * c.tele; sfx('tick'); }
   }
 }
 const inMelee = e => e.state === 'windup' || e.state === 'strike' || e.state === 'recover';
+// quanti altri nemici stanno già caricando o sferrando un colpo: nei primi vagoni si attacca uno alla volta
+const attackers = e => enemies.filter(o => o !== e && !o.dead && (o.state === 'windup' || o.state === 'strike')).length;
 // lancio a parabola verso dove sarà il giocatore
 function lob(e, kind, dmg) {
   const hx = e.x + Math.sin(e.face) * .4, hz = e.z + Math.cos(e.face) * .4, hy = e.y + 1.7;
-  const tx = p.x + p.vx * .25, tz = p.z + p.vz * .25, dx = tx - hx, dz = tz - hz, d = Math.hypot(dx, dz), t = clamp(d / 10, .45, 1.25), g = 14;
+  const lead = .25 * (1 - PACE.k), tx = p.x + p.vx * lead, tz = p.z + p.vz * lead, dx = tx - hx, dz = tz - hz, d = Math.hypot(dx, dz), t = clamp(d / 10, .45, 1.25) / PACE.proj, g = 14;
   spawnProj({ from: 'e', isProj: true, x: hx, y: hy, z: hz, vx: dx / t, vz: dz / t, vy: (p.y + .9 - hy + .5 * g * t * t) / t, g, dmg, kind, life: 3 });
 }
 // tira da media distanza: si allontana se sei vicino, si avvicina se sei lontano, altrimenti gira di lato
 function throwerAI(e, dt, c, kind, dmg) {
   e.face = turnTo(e.face, c.toP, 7 * dt);
-  if (e.state === 'throw') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { lob(e, kind, dmg); sfx('swing'); e.state = 'walk'; e.cd = rnd(1.7, 2.5); } return; }
+  if (e.state === 'throw') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { lob(e, kind, dmg); sfx('swing'); e.state = 'walk'; e.cd = rnd(2.2, 3.2); } return; }
   e.state = 'walk';
   let tx = e.x, tz = e.z;
   if (c.dist < 4.5) { tx = e.x - c.dx; tz = e.z - c.dz; } else if (c.dist > 9) { tx = p.x; tz = p.z; } else { tx = e.x + Math.cos(c.toP) * 2 * e.side; tz = e.z - Math.sin(c.toP) * 2 * e.side; }
   steer(e, tx, tz, c.dist < 4.5 || c.dist > 9 ? e.spd : e.spd * .45, c.opt, dt);
-  if (e.cd <= 0 && c.dist < 14) { e.state = 'throw'; e.st = .6; }
+  if (e.cd <= 0 && c.dist < 14) { e.state = 'throw'; e.st = e.st0 = .6 * c.tele; }
 }
 function ticketFan(e, n, step, sp) {
   const a0 = Math.atan2(p.x - e.x, p.z - e.z), y = e.y + 1.3;
@@ -1862,7 +1864,7 @@ function ticketFan(e, n, step, sp) {
 function minions(e) { return enemies.filter(m => !m.dead && m.minion).length; }
 function summon(e, types) {
   for (let i = 0; i < types.length; i++) {
-    if (minions(e) >= 4) break;
+    if (minions(e) >= 3) break;
     const a = e.face + (i ? 1 : -1) * rnd(.9, 1.6), d = rnd(1.8, 2.6);
     const x = clamp(e.x + Math.sin(a) * d, level.x0 + 1.2, level.x1 - 1.2), z = clamp(e.z + Math.cos(a) * d, level.z0 + 1.2, level.z1 - 1.2);
     const m = spawnEnemy(types[i], Math.max(1, e.lvl - 1), x, z, 'rise'); m.minion = true;
@@ -1870,37 +1872,48 @@ function summon(e, types) {
 }
 const AI = {
   ratto(e, dt, c) {
+    // morde e scappa: dopo il morso si allontana per un attimo, poi torna alla carica
+    if (e.state === 'flee') { e.st -= dt; steer(e, e.x - c.dx, e.z - c.dz, e.spd, c.opt, dt); e.face = turnTo(e.face, Math.atan2(e.vx, e.vz), 10 * dt); if (e.st <= 0) e.state = 'walk'; return; }
+    e.state = 'walk';
     steer(e, p.x, p.z, e.spd, c.opt, dt); e.face = turnTo(e.face, Math.atan2(e.vx, e.vz), 10 * dt);
-    if (c.dist < e.r + p.r + .15 && e.bite <= 0 && p.y < .8) { e.bite = .9; hurtPlayer(1, e); }
+    if (c.dist < e.r + p.r + .15 && e.bite <= 0 && p.y < .8) { e.bite = .9; hurtPlayer(1, e); if (e.stun <= 0) { e.state = 'flee'; e.st = rnd(.7, 1.1) * c.tele; } }
   },
-  scheletro(e, dt, c) { meleeAI(e, dt, c, { range: 2.1, windup: .55, lunge: 6.5, dmg: e.lvl > 1 ? 2 : 1 }); },
+  scheletro(e, dt, c) { meleeAI(e, dt, c, { range: 2.1, windup: .55, lunge: 6.5, dmg: 1 }); },
   arciere(e, dt, c) {
     e.face = turnTo(e.face, c.toP, 7 * dt);
     const xb = e.weapon === 'balestra';
-    if (e.state === 'draw') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { const s = xb ? 13 : 9.5, y = 1.4; spawnProj({ from: 'e', isProj: true, x: e.x + Math.sin(c.toP) * .6, y, z: e.z + Math.cos(c.toP) * .6, vx: Math.sin(c.toP) * s, vz: Math.cos(c.toP) * s, vy: (p.y + 1.2 - y) * s / Math.max(2, c.dist), dmg: xb && e.lvl > 2 ? 2 : 1, kind: xb ? 'quarrel' : 'arrow', life: 3 }); sfx('shoot'); e.state = 'walk'; e.cd = xb ? rnd(2.2, 2.9) : rnd(1.5, 2.2); } return; }
+    if (e.state === 'draw') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { const s = xb ? 13 : 9.5, y = 1.4; spawnProj({ from: 'e', isProj: true, x: e.x + Math.sin(c.toP) * .6, y, z: e.z + Math.cos(c.toP) * .6, vx: Math.sin(c.toP) * s, vz: Math.cos(c.toP) * s, vy: (p.y + 1.2 - y) * s / Math.max(2, c.dist), dmg: 1, kind: xb ? 'quarrel' : 'arrow', life: 3 }); sfx('shoot'); e.state = 'walk'; e.cd = xb ? rnd(2.2, 2.9) : rnd(1.5, 2.2); } return; }
     e.state = 'walk';
     let tx = e.x, tz = e.z;
     if (c.dist < 5.5) { tx = e.x - c.dx; tz = e.z - c.dz; } else if (c.dist > 9.5) { tx = p.x; tz = p.z; } else { tx = e.x + Math.cos(c.toP) * 2 * e.side; tz = e.z - Math.sin(c.toP) * 2 * e.side; }
     steer(e, tx, tz, c.dist < 5.5 || c.dist > 9.5 ? e.spd : e.spd * .4, c.opt, dt);
-    if (e.cd <= 0 && c.dist < 15) { e.state = 'draw'; e.st = xb ? .9 : .75; }
+    if (e.cd <= 0 && c.dist < 15) { e.state = 'draw'; e.st = (xb ? .9 : .75) * c.tele; }
   },
   bigliettaio(e, dt, c) {
     e.face = turnTo(e.face, c.toP, 5 * dt);
-    if (e.dashT > 0) { e.dashT -= dt; e.vx = Math.sin(e.dashA) * 11; e.vz = Math.cos(e.dashA) * 11; if (Math.random() < .5) Sparks.emit(e.x, 1.4, e.z, 2, 0x62d4c7, .5, .5, .5, 0); }
-    else {
-      const want = 5.5, orbit = T * .6;
-      const tx = p.x - Math.sin(c.toP + Math.sin(orbit) * .8) * want, tz = p.z - Math.cos(c.toP + Math.sin(orbit) * .8) * want;
-      const k = Math.min(1, dt * 2); e.vx += ((tx - e.x) * 1.1 - e.vx) * k; e.vz += ((tz - e.z) * 1.1 - e.vz) * k;
-      const sp = Math.hypot(e.vx, e.vz); if (sp > 4) { e.vx *= 4 / sp; e.vz *= 4 / sp; }
-      e.tickCd -= dt; e.dashCd -= dt;
-      if (e.tickCd <= 0 && e.fadeIn <= 0) { e.tickCd = e.lvl > 2 ? 1.8 : 2.2; ticketFan(e, e.lvl > 2 ? 5 : 3, .32, 7.5); }
-      if (e.dashCd <= 0 && c.dist < 10 && e.fadeIn <= 0) { e.dashCd = rnd(4.2, 5.6); e.dashT = .55; e.dashA = c.toP; UI.dmg(e.x, 3.4, e.z, 'BIGLIETTO!', '#62d4c7'); sfx('ghost'); }
+    // dopo lo scatto resta stordito e basso per un attimo: è il momento di colpirlo
+    if (e.state === 'tired') { e.vx *= .9; e.vz *= .9; e.st -= dt; if (Math.random() < .25) Sparks.emit(e.x, e.y + 2.1, e.z, 1, 0x62d4c7, .5, .8, .5, 0); if (e.st <= 0) e.state = 'walk'; return; }
+    // prima dello scatto si ferma e lo annuncia
+    if (e.state === 'aim') { e.vx *= .85; e.vz *= .85; e.st -= dt; if (e.st <= 0) { e.state = 'dash'; e.dashT = .55; e.dashA = c.toP; sfx('ghost'); } return; }
+    if (e.state === 'dash') {
+      e.dashT -= dt; e.vx = Math.sin(e.dashA) * 11; e.vz = Math.cos(e.dashA) * 11; if (Math.random() < .5) Sparks.emit(e.x, 1.4, e.z, 2, 0x62d4c7, .5, .5, .5, 0);
+      // ferisce solo passando attraverso chi gioca
+      if (c.dist < e.r + p.r + .2 && e.bite <= 0) { e.bite = 1; hurtPlayer(e.lvl > 2 ? 2 : 1, e); }
+      if (e.dashT <= 0) { e.state = 'tired'; e.st = 1.2 * c.tele; UI.dmg(e.x, e.y + 2.9, e.z, 'STORDITO', '#62d4c7'); }
+      return;
     }
-    if (c.dist < e.r + p.r + .2 && e.bite <= 0 && e.fadeIn <= 0) { e.bite = 1; hurtPlayer(e.dashT > 0 ? 2 : 1, e); }
+    e.state = 'walk'; e.dashT = 0;
+    const want = 5.5, orbit = T * .6;
+    const tx = p.x - Math.sin(c.toP + Math.sin(orbit) * .8) * want, tz = p.z - Math.cos(c.toP + Math.sin(orbit) * .8) * want;
+    const k = Math.min(1, dt * 2); e.vx += ((tx - e.x) * 1.1 - e.vx) * k; e.vz += ((tz - e.z) * 1.1 - e.vz) * k;
+    const sp = Math.hypot(e.vx, e.vz); if (sp > 4) { e.vx *= 4 / sp; e.vz *= 4 / sp; }
+    e.tickCd -= dt * c.k; e.dashCd -= dt * c.k;
+    if (e.tickCd <= 0 && e.fadeIn <= 0) { e.tickCd = e.lvl > 2 ? 1.8 : 2.2; ticketFan(e, e.lvl > 2 ? 5 : 3, .32, 7.5); }
+    if (e.dashCd <= 0 && c.dist < 10 && e.fadeIn <= 0) { e.dashCd = rnd(4.2, 5.6); e.state = 'aim'; e.st = .5 * c.tele; UI.dmg(e.x, 3.4, e.z, 'BIGLIETTO!', '#62d4c7'); sfx('tick'); }
   },
-  cuoco(e, dt, c) { if (inMelee(e) || c.dist < 2.0) meleeAI(e, dt, c, { range: 2.0, windup: .5, lunge: 5, dmg: 1 }); else throwerAI(e, dt, c, 'cleaver', e.lvl > 2 ? 2 : 1); },
-  fuochista(e, dt, c) { if (inMelee(e) || c.dist < 2.1) meleeAI(e, dt, c, { range: 2.2, windup: .55, lunge: 5.5, dmg: 2 }); else throwerAI(e, dt, c, 'coal', 1); },
-  guardia(e, dt, c) { meleeAI(e, dt, c, { range: 2.4, windup: .72, lunge: 7.5, dmg: 2, recover: .85 }); },
+  cuoco(e, dt, c) { if (inMelee(e) || c.dist < 2.0) meleeAI(e, dt, c, { range: 2.0, windup: .5, lunge: 5, dmg: 1 }); else throwerAI(e, dt, c, 'cleaver', 1); },
+  fuochista(e, dt, c) { if (inMelee(e) || c.dist < 2.1) meleeAI(e, dt, c, { range: 2.2, windup: .55, lunge: 5.5, dmg: 1 }); else throwerAI(e, dt, c, 'coal', 1); },
+  guardia(e, dt, c) { meleeAI(e, dt, c, { range: 2.4, windup: .72, lunge: 7.5, dmg: 1, recover: .85 }); },
   mimic(e, dt, c) {
     const u = e.model.userData;
     if (e.state === 'sleep') {
@@ -1910,9 +1923,11 @@ const AI = {
     }
     e.face = turnTo(e.face, c.toP, 9 * dt);
     if (e.state === 'wake') { e.st -= dt; if (e.st <= 0) { e.state = 'walk'; e.cd = .15; } return; }
-    if (e.air) { if (c.dist < e.r + p.r + .25 && e.bite <= 0 && Math.abs(p.y - e.y) < 1) { e.bite = .9; hurtPlayer(2, e); } return; }
-    if (e.landed) { e.landed = false; e.vx *= .15; e.vz *= .15; sfx('land'); Chunks.emit(e.x, .1, e.z, 4, [0x5a5048, 0x3a342e], 2, .07, .5); if (c.dist < 1.6 && e.bite <= 0) { e.bite = .9; hurtPlayer(2, e); } }
+    if (e.air) return;
+    // dopo ogni salto resta a bocca aperta per un attimo: è il momento di colpirlo
+    if (e.landed) { e.landed = false; e.vx *= .15; e.vz *= .15; sfx('land'); Chunks.emit(e.x, .1, e.z, 4, [0x5a5048, 0x3a342e], 2, .07, .5); if (c.dist < e.r + p.r + .35 && e.bite <= 0 && p.y < 1) { e.bite = .9; hurtPlayer(1, e); } if (e.stun <= 0) { e.state = 'rest'; e.st = rnd(.45, .7) * c.tele; } }
     const k = Math.pow(.02, dt); e.vx *= k; e.vz *= k;
+    if (e.state === 'rest') { e.st -= dt; if (e.st <= 0) e.state = 'walk'; return; }
     if (e.cd <= 0) { const s = Math.min(7.5, c.dist * 1.7 + 1); e.vy = 6; e.air = true; e.vx = Math.sin(c.toP) * s; e.vz = Math.cos(c.toP) * s; e.cd = rnd(.3, .55); }
   },
   fantasma(e, dt, c) {
@@ -1923,11 +1938,11 @@ const AI = {
       if (e.st <= 0) {
         const a = LOOK.yaw + pick([-1, 1]) * rnd(1.0, 2.2), d = rnd(2.8, 3.8);
         e.x = clamp(p.x + Math.sin(a) * d, level.x0 + 1, level.x1 - 1); e.z = clamp(p.z + Math.cos(a) * d, level.z0 + 1, level.z1 - 1);
-        e.state = 'appear'; e.st = .55; Sparks.emit(e.x, 1.2, e.z, 16, 0xb8a0ff, 2, 2, .6, 0); sfx('ghost');
+        e.state = 'appear'; e.st = e.st0 = .55 * c.tele; Sparks.emit(e.x, 1.2, e.z, 16, 0xb8a0ff, 2, 2, .6, 0); sfx('ghost');
       }
       return;
     }
-    if (e.state === 'appear') { e.vx = e.vz = 0; e.st -= dt; e.vis = 1 - Math.max(0, e.st) / .55; if (e.st <= 0) { e.state = 'lunge'; e.st = .5; e.dashA = c.toP; } return; }
+    if (e.state === 'appear') { e.vx = e.vz = 0; e.st -= dt; e.vis = 1 - Math.max(0, e.st) / e.st0; if (e.st <= 0) { e.state = 'lunge'; e.st = .5; e.dashA = c.toP; } return; }
     if (e.state === 'lunge') {
       e.vis = 1; e.st -= dt; e.vx = Math.sin(e.dashA) * 8; e.vz = Math.cos(e.dashA) * 8;
       if (c.dist < e.r + p.r + .3 && e.bite <= 0 && p.y < 1.9) { e.bite = 1; hurtPlayer(1, e); }
@@ -1938,42 +1953,48 @@ const AI = {
     const side = Math.sin(e.phase * 1.3) * 1.6, tx = p.x + Math.cos(c.toP) * side, tz = p.z - Math.sin(c.toP) * side, a = Math.atan2(tx - e.x, tz - e.z), k = Math.min(1, dt * 2.5);
     e.vx += (Math.sin(a) * e.spd - e.vx) * k; e.vz += (Math.cos(a) * e.spd - e.vz) * k;
     if (c.dist < e.r + p.r + .25 && e.bite <= 0 && p.y < 1.9) { e.bite = 1; hurtPlayer(1, e); }
-    e.blinkCd -= dt; if (e.blinkCd <= 0 && c.dist < 9 && e.fadeIn <= 0) { e.state = 'fade'; e.st = .45; sfx('ghost'); }
+    e.blinkCd -= dt * c.k; if (e.blinkCd <= 0 && c.dist < 9 && e.fadeIn <= 0) { e.state = 'fade'; e.st = .45; sfx('ghost'); }
   },
   ragno(e, dt, c) {
-    if (e.air) { if (c.dist < e.r + p.r + .25 && e.bite <= 0 && Math.abs(p.y - e.y) < 1) { e.bite = .8; hurtPlayer(1, e); } return; }
-    if (e.landed) { e.landed = false; e.state = 'recover'; e.st = .45; e.vx *= .2; e.vz *= .2; }
+    if (e.air) return;
+    // atterrando addosso morde; come i ratti, dopo il morso scappa per un attimo
+    if (e.landed) {
+      e.landed = false; e.vx *= .2; e.vz *= .2;
+      const bit = c.dist < e.r + p.r + .3 && e.bite <= 0 && p.y < .8; if (bit) { e.bite = .9; hurtPlayer(1, e); }
+      e.state = bit && e.stun <= 0 ? 'flee' : 'recover'; e.st = bit ? rnd(.7, 1.0) * c.tele : .45;
+    }
+    if (e.state === 'flee') { e.st -= dt; steer(e, e.x - c.dx, e.z - c.dz, e.spd, c.opt, dt); e.face = turnTo(e.face, Math.atan2(e.vx, e.vz), 10 * dt); if (e.st <= 0) e.state = 'walk'; return; }
     if (e.state === 'crouch') { e.vx *= .7; e.vz *= .7; e.face = turnTo(e.face, c.toP, 8 * dt); e.st -= dt; if (e.st <= 0) { const s = Math.min(10, c.dist * 2.1); e.vy = 5.2; e.air = true; e.vx = Math.sin(c.toP) * s; e.vz = Math.cos(c.toP) * s; sfx('jump'); e.state = 'leap'; } return; }
     if (e.state === 'recover') { e.vx *= .85; e.vz *= .85; e.st -= dt; if (e.st <= 0) e.state = 'walk'; return; }
     e.state = 'walk';
     const off = Math.sin(e.phase * 2.6) * 1.4, tx = p.x + Math.cos(c.toP) * off, tz = p.z - Math.sin(c.toP) * off;
     steer(e, tx, tz, e.spd, c.opt, dt); e.face = turnTo(e.face, Math.atan2(e.vx, e.vz), 10 * dt);
-    if (c.dist < 5 && c.dist > 1.8 && e.cd <= 0) { e.state = 'crouch'; e.st = .38; e.cd = rnd(1.6, 2.4); sfx('tick'); }
-    if (c.dist < e.r + p.r + .2 && e.bite <= 0 && p.y < .8) { e.bite = .9; hurtPlayer(1, e); }
+    if (c.dist < 5 && c.dist > 1.8 && e.cd <= 0) { e.state = 'crouch'; e.st = .38 * c.tele; e.cd = rnd(1.6, 2.4); sfx('tick'); }
+    if (c.dist < e.r + p.r + .2 && e.bite <= 0 && p.y < .8) { e.bite = .9; hurtPlayer(1, e); if (e.stun <= 0) { e.state = 'flee'; e.st = rnd(.7, 1.0) * c.tele; } }
   },
   regina(e, dt, c) {
     const ph2 = e.hp < e.max * .5;
     if (!e.tm) e.tm = { web: 2.5, brood: 7, leap: 6 };
     if (e.air) return;
-    if (e.landed) { e.landed = false; e.state = 'recover'; e.st = .8; e.vx = e.vz = 0; shake = Math.max(shake, .7); sfx('boom'); shockwave(e.x, e.z, 9, 11, 2, 0x9aff70); Chunks.emit(e.x, .1, e.z, 16, [0x3a342e, 0x5a5048, 0x9aff70], 4, .12, .8); }
-    e.tm.web -= dt; e.tm.brood -= dt; e.tm.leap -= dt;
+    if (e.landed) { e.landed = false; e.state = 'recover'; e.st = .8; e.vx = e.vz = 0; shake = Math.max(shake, .7); sfx('boom'); shockwave(e.x, e.z, 9, 11, 1, 0x9aff70); Chunks.emit(e.x, .1, e.z, 16, [0x3a342e, 0x5a5048, 0x9aff70], 4, .12, .8); }
+    e.tm.web -= dt * c.k; e.tm.brood -= dt * c.k; e.tm.leap -= dt * c.k;
     if (e.state === 'spit') { e.vx *= .8; e.vz *= .8; e.face = turnTo(e.face, c.toP, 5 * dt); e.st -= dt; if (e.st <= 0) { const n = ph2 ? 3 : 1, a0 = c.toP, y = 1.2; for (let i = 0; i < n; i++) { const a = a0 + (i - (n - 1) / 2) * .28; spawnProj({ from: 'e', isProj: true, x: e.x + Math.sin(a) * 1.2, y, z: e.z + Math.cos(a) * 1.2, vx: Math.sin(a) * 9, vz: Math.cos(a) * 9, vy: (p.y + 1 - y) * 9 / Math.max(2, c.dist), dmg: 1, kind: 'web', life: 3 }); } sfx('shoot'); e.state = 'walk'; } return; }
-    if (e.state === 'brood') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { summon(e, ['ragno', 'ragno']); sfx('ghost'); e.state = 'walk'; } return; }
+    if (e.state === 'brood') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { summon(e, ph2 ? ['ragno', 'ragno'] : ['ragno']); sfx('ghost'); e.state = 'walk'; } return; }
     if (e.state === 'crouch') { e.vx *= .7; e.vz *= .7; e.face = turnTo(e.face, c.toP, 6 * dt); e.st -= dt; if (e.st <= 0) { const s = Math.min(11, c.dist * 1.25); e.vy = 8.5; e.air = true; e.vx = Math.sin(c.toP) * s; e.vz = Math.cos(c.toP) * s; sfx('jump'); e.state = 'leap'; } return; }
     if (e.state === 'recover') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) e.state = 'walk'; return; }
     e.state = 'walk';
     steer(e, p.x, p.z, c.dist > 4 ? e.spd : 0, c.opt, dt); e.face = turnTo(e.face, c.toP, 4 * dt);
-    if (e.tm.leap <= 0 && c.dist > 3) { e.tm.leap = ph2 ? rnd(5, 6.5) : rnd(7, 9); e.state = 'crouch'; e.st = .75; UI.dmg(e.x, 3.2, e.z, 'SALTA!', '#9aff70'); }
-    else if (e.tm.brood <= 0) { e.tm.brood = ph2 ? 8 : 11; e.state = 'brood'; e.st = .8; }
-    else if (e.tm.web <= 0 && c.dist < 16) { e.tm.web = ph2 ? 2.2 : 3.2; e.state = 'spit'; e.st = .5; }
-    if (c.dist < e.r + p.r + .2 && e.bite <= 0 && p.y < 1.2) { e.bite = 1; hurtPlayer(2, e); }
+    if (e.tm.leap <= 0 && c.dist > 3) { e.tm.leap = ph2 ? rnd(5, 6.5) : rnd(7, 9); e.state = 'crouch'; e.st = .75 * c.tele; UI.dmg(e.x, 3.2, e.z, 'SALTA!', '#9aff70'); }
+    else if (e.tm.brood <= 0) { e.tm.brood = ph2 ? 8 : 11; e.state = 'brood'; e.st = .8 * c.tele; }
+    else if (e.tm.web <= 0 && c.dist < 16) { e.tm.web = ph2 ? 2.2 : 3.2; e.state = 'spit'; e.st = .5 * c.tele; }
+    if (c.dist < e.r + p.r + .2 && e.bite <= 0 && p.y < 1.2) { e.bite = 1; hurtPlayer(1, e); }
   },
   automa(e, dt, c) {
     if (e.state === 'wind') { e.vx *= .8; e.vz *= .8; e.face = turnTo(e.face, c.toP, 5 * dt); e.st -= dt; if (e.st <= 0) { e.state = 'charge'; e.st = 1.1; e.dashA = e.face; sfx('flip'); } return; }
     if (e.state === 'charge') {
-      e.st -= dt; e.vx = Math.sin(e.dashA) * 12; e.vz = Math.cos(e.dashA) * 12;
+      e.st -= dt; e.vx = Math.sin(e.dashA) * 10; e.vz = Math.cos(e.dashA) * 10;
       if (Math.random() < .5) Sparks.emit(e.x, .1, e.z, 2, 0xffc070, 1.5, 1, .3, 2);
-      if (c.dist < e.r + p.r + .25 && e.bite <= 0 && p.y < 1.2) { e.bite = 1; hurtPlayer(2, e); e.state = 'recover'; e.st = .6; }
+      if (c.dist < e.r + p.r + .25 && e.bite <= 0 && p.y < 1.2) { e.bite = 1; hurtPlayer(1, e); e.state = 'recover'; e.st = .6; }
       else if (e.blocked && e.st < 1.02) { e.stun = 1.8; e.state = 'stun'; e.vx = -e.vx * .25; e.vz = -e.vz * .25; sfx('hit'); shake = Math.max(shake, .3); Sparks.emit(e.x, 1, e.z, 26, 0xffc070, 3, 3, .5, 4); UI.dmg(e.x, 2.3, e.z, 'STORDITO', '#ffc070'); }
       else if (e.st <= 0) { e.state = 'recover'; e.st = .5; }
       return;
@@ -1981,27 +2002,28 @@ const AI = {
     if (e.state === 'recover') { e.vx *= .85; e.vz *= .85; e.st -= dt; if (e.st <= 0) e.state = 'walk'; return; }
     e.state = 'walk';
     steer(e, p.x, p.z, c.dist > 5 ? e.spd : e.spd * .3, c.opt, dt); e.face = turnTo(e.face, c.toP, 4 * dt);
-    if (c.dist < 10 && c.dist > 2.5 && e.cd <= 0) { e.state = 'wind'; e.st = .75; e.cd = rnd(2.4, 3.4); sfx('tick'); }
+    if (c.dist < 10 && c.dist > 2.5 && e.cd <= 0) { e.state = 'wind'; e.st = .9 * c.tele; e.cd = rnd(2.6, 3.6); sfx('tick'); }
     if (c.dist < e.r + p.r + .2 && e.bite <= 0 && p.y < 1) { e.bite = 1; hurtPlayer(1, e); }
   },
   capotreno(e, dt, c) {
     const f = e.hp / e.max, ph = f > .66 ? 1 : f > .33 ? 2 : 3;
     if (!e.tm) e.tm = { tk: 2.5, sum: 8, stomp: 4, dash: 4 };
     if (ph !== e.ph) { if (e.ph) { UI.banner('IL CAPOTRENO', ph === 2 ? 'FISCHIA LA PARTENZA' : 'A TUTTO VAPORE'); shake = .7; sfx('whistle'); e.state = 'roar'; e.st = 1.0; } e.ph = ph; }
-    const tm = e.tm; tm.tk -= dt; tm.sum -= dt; tm.stomp -= dt; tm.dash -= dt;
+    const tm = e.tm; tm.tk -= dt * c.k; tm.sum -= dt * c.k; tm.stomp -= dt * c.k; tm.dash -= dt * c.k;
     if (e.state === 'roar') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (Math.random() < .5) Puffs.emit(e.x, 3.2, e.z, 1, .9); if (e.st <= 0) e.state = 'walk'; return; }
-    if (e.state === 'cast') { e.vx *= .8; e.vz *= .8; e.face = turnTo(e.face, c.toP, 5 * dt); e.st -= dt; if (e.st <= 0) { ticketFan(e, ph === 1 ? 5 : 7, ph === 3 ? .2 : .26, 8.5); if (ph >= 2 && !e.second) { e.second = true; e.st = .4; return; } e.second = false; e.state = 'walk'; } return; }
-    if (e.state === 'stomp') { e.vx *= .7; e.vz *= .7; e.st -= dt; if (e.st <= 0) { shockwave(e.x, e.z, 8, 15, 2, 0xffb060); shake = .7; sfx('boom'); Puffs.emit(e.x, .4, e.z, 8, 1.4); e.state = 'recover'; e.st = .6; } return; }
+    if (e.state === 'cast') { e.vx *= .8; e.vz *= .8; e.face = turnTo(e.face, c.toP, 5 * dt); e.st -= dt; if (e.st <= 0) { ticketFan(e, ph === 1 ? 3 : 5, ph === 3 ? .24 : .3, 8.5); if (ph === 3 && !e.second) { e.second = true; e.st = .4; return; } e.second = false; e.state = 'walk'; } return; }
+    if (e.state === 'stomp') { e.vx *= .7; e.vz *= .7; e.st -= dt; if (e.st <= 0) { shockwave(e.x, e.z, 8, 15, 1, 0xffb060); shake = .7; sfx('boom'); Puffs.emit(e.x, .4, e.z, 8, 1.4); e.state = 'recover'; e.st = .6; } return; }
     if (e.state === 'whistle') { e.vx *= .8; e.vz *= .8; e.st -= dt; if (e.st <= 0) { summon(e, ph === 1 ? ['ratto', 'ratto'] : ph === 2 ? ['scheletro', 'ratto'] : ['fuochista', 'scheletro']); e.state = 'walk'; } return; }
+    if (e.state === 'aim') { e.vx *= .85; e.vz *= .85; e.face = turnTo(e.face, c.toP, 5 * dt); e.st -= dt; if (e.st <= 0) { e.state = 'dash'; e.st = .6; e.dashA = c.toP; sfx('ghost'); } return; }
     if (e.state === 'dash') { e.st -= dt; e.vx = Math.sin(e.dashA) * 12; e.vz = Math.cos(e.dashA) * 12; if (Math.random() < .6) Puffs.emit(e.x, 1, e.z, 1, .8); if (c.dist < e.r + p.r + .3 && e.bite <= 0) { e.bite = 1; hurtPlayer(2, e); } if (e.st <= 0 || (e.blocked && e.st < .5)) { e.state = 'recover'; e.st = .5; } return; }
     if (inMelee(e)) { meleeAI(e, dt, c, { range: 2.9, windup: ph === 3 ? .45 : .6, lunge: 7, dmg: 2, recover: .6 }); return; }
     e.state = 'walk';
     steer(e, p.x, p.z, c.dist > 2.6 ? e.spd * (ph === 3 ? 1.3 : 1) : 0, c.opt, dt); e.face = turnTo(e.face, c.toP, 5 * dt);
-    if (c.dist < 2.9 && e.cd <= 0) { e.state = 'windup'; e.st = ph === 3 ? .45 : .6; sfx('tick'); }
-    else if (ph >= 2 && tm.stomp <= 0) { tm.stomp = ph === 3 ? 4.5 : 6.5; e.state = 'stomp'; e.st = .8; UI.dmg(e.x, 4.4, e.z, 'SALTA!', '#ffb060'); }
-    else if (ph === 3 && tm.dash <= 0 && c.dist > 4) { tm.dash = 4; e.state = 'dash'; e.st = .6; e.dashA = c.toP; UI.dmg(e.x, 4.4, e.z, 'BIGLIETTO!', '#62d4c7'); sfx('ghost'); }
+    if (c.dist < 2.9 && e.cd <= 0) { e.state = 'windup'; e.st = (ph === 3 ? .45 : .6) * c.tele; sfx('tick'); }
+    else if (ph >= 2 && tm.stomp <= 0) { tm.stomp = ph === 3 ? 4.5 : 6.5; e.state = 'stomp'; e.st = .8 * c.tele; UI.dmg(e.x, 4.4, e.z, 'SALTA!', '#ffb060'); }
+    else if (ph === 3 && tm.dash <= 0 && c.dist > 4) { tm.dash = 4; e.state = 'aim'; e.st = .5 * c.tele; UI.dmg(e.x, 4.4, e.z, 'BIGLIETTO!', '#62d4c7'); sfx('tick'); }
     else if (tm.sum <= 0) { tm.sum = ph === 3 ? 10 : 13; e.state = 'whistle'; e.st = .9; sfx('whistle'); }
-    else if (tm.tk <= 0 && c.dist > 2.6) { tm.tk = ph === 1 ? 2.6 : 2.0; e.state = 'cast'; e.st = .45; }
+    else if (tm.tk <= 0 && c.dist > 2.6) { tm.tk = ph === 1 ? 2.6 : 2.0; e.state = 'cast'; e.st = .45 * c.tele; }
   }
 };
 
@@ -2014,20 +2036,23 @@ function poseHumanoid(e, u, spd) {
   if (s === 'windup') { u.armR.rotation.x = -2.7; u.upper.rotation.y = .6; }
   else if (s === 'strike') { u.armR.rotation.x = -1.3; u.upper.rotation.y = -.9; }
   else if (s === 'draw') { u.armL.rotation.x = -1.55; u.armR.rotation.x = -1.4; u.upper.rotation.y = -.25; }
-  else if (s === 'throw') { const t = 1 - e.st / .6; u.armR.rotation.x = -2.9 + t * .4; u.upper.rotation.y = .5; u.upper.rotation.x = -.15; }
+  else if (s === 'throw') { const t = 1 - e.st / (e.st0 || .6); u.armR.rotation.x = -2.9 + t * .4; u.upper.rotation.y = .5; u.upper.rotation.x = -.15; }
   else if (s === 'cast') { u.armL.rotation.x = -2.2; u.armR.rotation.x = -2.0; u.upper.rotation.x = -.15; }
   else if (s === 'stomp') { u.armL.rotation.x = -3.0 + Math.sin(T * 30) * .05; u.upper.rotation.x = -.2; }
   else if (s === 'whistle') { u.armR.rotation.set(-2.5, 0, .4); u.head.rotation.x = -.3; }
   else if (s === 'roar') { u.head.rotation.x = -.5; u.armL.rotation.set(-.6, 0, -.6); u.armR.rotation.set(-.6, 0, .6); u.upper.rotation.x = -.2; }
   else if (s === 'dash') { u.upper.rotation.x = .4; u.armL.rotation.x = .6; u.armR.rotation.x = .6; }
+  else if (s === 'aim') { u.armR.rotation.x = -2.4; u.upper.rotation.x = -.15; }
   if (u.weapon) u.weapon.rotation.x = u.wtype === 'arco' || u.wtype === 'balestra' ? -1.45 : -.6;
   if (u.shield) { const down = e.stun > 0 || s === 'strike' || s === 'recover'; u.shield.rotation.x += ((down ? 1.0 : 0) - u.shield.rotation.x) * .2; u.shield.position.y += ((down ? .02 : .3) - u.shield.position.y) * .2; }
 }
 const POSER = {
   ratto(e, u, spd) { u.body.position.y = Math.abs(Math.sin(e.phase * 18)) * .05 * Math.min(1, spd / 2); u.tail.rotation.y = Math.sin(e.phase * 10) * .5; u.legs.forEach((l, i) => l.rotation.x = Math.sin(e.phase * 20 + (i % 2) * Math.PI) * .7 * Math.min(1, spd / 2)); },
   bigliettaio(e, u) {
-    u.armL.rotation.x = Math.sin(T * 2) * .3 - .3; u.armR.rotation.x = e.tickCd < .4 ? -1.6 : -.4 + Math.sin(T * 2 + 1) * .2;
-    u.body.rotation.x = e.dashT > 0 ? .5 : 0; u.light.intensity = 2.2 + Math.sin(T * 9) * .3;
+    const tired = e.state === 'tired', aim = e.state === 'aim';
+    u.armL.rotation.x = tired ? .3 : Math.sin(T * 2) * .3 - .3; u.armR.rotation.x = aim ? -2.4 : tired ? .3 : e.tickCd < .4 ? -1.6 : -.4 + Math.sin(T * 2 + 1) * .2;
+    u.body.rotation.x += ((e.state === 'dash' ? .5 : tired ? -.35 : aim ? -.15 : 0) - u.body.rotation.x) * .2; u.body.rotation.z = tired ? Math.sin(T * 5) * .12 : 0;
+    u.light.intensity = tired ? .9 + Math.sin(T * 9) * .2 : 2.2 + Math.sin(T * 9) * .3;
     e.model.traverse(o => { if (o.isMesh && o.material.transparent) o.material.opacity = (o.material === MAT.ghost ? .62 : .85) * (e.fadeIn > 0 ? 1 - e.fadeIn / 1.2 : 1); });
   },
   mimic(e, u, spd) {
@@ -2430,57 +2455,65 @@ function insideAny(L, x, z, pad) { for (const o of L.obs) if (x > o.x0 - pad && 
 // waves: [tipo, livello] per ondata; subs: sottotitolo del cartello di ogni ondata; shop: a vagone libero arriva la bottega
 const WAGONS = [
   { name: 'Carrozza passeggeri', sign: 'PASSEGGERI', wx: 'TETTO APERTO', build: () => buildPassenger(),
-    waves: [[['ratto', 1], ['ratto', 1], ['ratto', 1], ['ratto', 1], ['ratto', 1]], [['scheletro', 1], ['ratto', 2], ['arciere', 1], ['scheletro', 2], ['ratto', 1]], [['arciere', 2], ['scheletro', 2], ['ratto', 2], ['arciere', 1], ['bigliettaio', 3]]],
+    waves: [[['ratto', 1], ['ratto', 1], ['ratto', 1]], [['scheletro', 1], ['ratto', 1], ['scheletro', 1], ['arciere', 1]], [['scheletro', 1], ['bigliettaio', 1]]],
     subs: ['SCENDONO DAL TETTO SQUARCIATO', 'SCENDONO DAL TETTO SQUARCIATO', 'IL BIGLIETTAIO STA ARRIVANDO'],
-    intro: ['Biglietto, prego.', '...Ah, non ce l\'hai. Peccato. I passeggeri di questa carrozza non sono molto ospitali.'],
+    intro: ['Biglietto, prego.', '...Ah, non ce l\'hai. Peccato. I passeggeri di questa carrozza non sono molto ospitali.', 'Un consiglio: quando l\'anello ai piedi di un nemico lampeggia, sta per colpire. Spostati, oppure para al momento giusto.'],
     outro: ['Hai ripulito il primo vagone. Notevole.', 'Ne mancano nove fino alla locomotiva. Il prossimo è la carrozza ristorante: non toccare il pane, è del 1897.'] },
   { name: 'Carrozza ristorante', sign: 'RISTORANTE', wx: 'LAMPADARI ACCESI', build: () => buildDining(2),
-    waves: [[['ratto', 1], ['scheletro', 1], ['cuoco', 1], ['ratto', 1], ['scheletro', 1]], [['cuoco', 1], ['scheletro', 2], ['ratto', 2], ['cuoco', 1], ['ratto', 1], ['scheletro', 1]], [['cuoco', 2], ['cuoco', 2], ['scheletro', 2], ['arciere', 1], ['ratto', 2], ['scheletro', 2]]],
+    waves: [[['scheletro', 1], ['cuoco', 1], ['ratto', 1], ['scheletro', 1]], [['cuoco', 1], ['scheletro', 1], ['ratto', 1], ['cuoco', 1], ['ratto', 1]], [['cuoco', 2], ['scheletro', 2], ['arciere', 1], ['cuoco', 1], ['scheletro', 1]]],
     subs: ['ESCONO DALLE CUCINE', 'IL SERVIZIO CONTINUA', 'ARRIVA IL DESSERT'],
     intro: ['Benvenuto nella carrozza ristorante. Il menù di stasera: tu.', 'Lo chef è un po\' nervoso. Non lamentarti del servizio.'],
     outro: ['Conto pagato. Niente mancia, vedo.', 'Avanti il bagagliaio. Attento ai bauli: alcuni mordono.'] },
   { name: 'Bagagliaio', sign: 'BAGAGLIAIO', wx: 'LANTERNE A DONDOLO', shop: true, build: () => buildBaggage(3),
-    waves: [[['ratto', 2], ['ratto', 2], ['mimic', 2], ['ratto', 2], ['arciere', 2]], [['mimic', 2], ['mimic', 2], ['scheletro', 2], ['ratto', 2], ['arciere', 2]], [['mimic', 2], ['arciere', 2], ['scheletro', 2], ['mimic', 2], ['ratto', 2], ['cuoco', 2], ['scheletro', 2]]],
+    waves: [[['ratto', 2], ['mimic', 2], ['ratto', 2], ['arciere', 2]], [['mimic', 2], ['scheletro', 2], ['ratto', 2], ['arciere', 2]], [['mimic', 2], ['arciere', 2], ['scheletro', 2], ['mimic', 2], ['cuoco', 2]]],
     subs: ['SBUCANO DAI BAGAGLI', 'QUALCOSA SI MUOVE TRA LE CASSE', 'I BAULI HANNO FAME'],
     intro: ['Il bagagliaio. Qui finisce tutto quello che i passeggeri dimenticano.', 'Anche i passeggeri, a volte.'],
     outro: ['Ordine ristabilito. Il mio robot di fiducia ha aperto bottega, se hai monete da spendere.', 'Poi c\'è il vagone letto. Cammina piano: i passeggeri dormono. Più o meno.'] },
   { name: 'Vagone letto', sign: 'VAGONE LETTO', wx: 'LUCI DA NOTTE', build: () => buildSleeper(4),
-    waves: [[['fantasma', 2], ['scheletro', 2], ['fantasma', 2], ['ratto', 2]], [['fantasma', 2], ['arciere', 2], ['fantasma', 2], ['scheletro', 2], ['fantasma', 2]], [['fantasma', 2], ['fantasma', 3], ['arciere', 2], ['scheletro', 3], ['fantasma', 3], ['cuoco', 2]]],
+    waves: [[['fantasma', 2], ['scheletro', 2], ['fantasma', 2]], [['fantasma', 2], ['arciere', 2], ['fantasma', 2], ['scheletro', 2]], [['fantasma', 2], ['fantasma', 3], ['arciere', 2], ['scheletro', 2], ['fantasma', 2], ['cuoco', 2]]],
     subs: ['I DORMIENTI SI SVEGLIANO', 'BUSSANO DALLE CUCCETTE', 'NESSUNO DORME PIÙ'],
     intro: ['Shh. Vagone letto. I passeggeri riposano da centotrent\'anni.', 'Se qualcuno ti passa attraverso, non è maleducazione: è un fantasma.'],
     outro: ['Silenzio, finalmente.', 'Più avanti c\'è la serra. Qualcosa ha fatto il nido tra le orchidee. Qualcosa con molte zampe.'] },
   { name: 'Serra panoramica', sign: 'SERRA', wx: 'TETTO DI VETRO', build: () => buildGreenhouse(5),
-    waves: [[['ragno', 2], ['ragno', 2], ['ragno', 2], ['arciere', 2], ['ragno', 2]], [['ragno', 2], ['cuoco', 2], ['ragno', 3], ['ragno', 2], ['scheletro', 3], ['ragno', 2]], [['regina', 3], ['ragno', 2], ['ragno', 2]]],
+    waves: [[['ragno', 2], ['arciere', 2], ['ragno', 2]], [['ragno', 2], ['cuoco', 2], ['ragno', 2], ['scheletro', 2]], [['regina', 3], ['ragno', 2]]],
     subs: ['CALANO DAL SOFFITTO', 'IL NIDO SI AGITA', 'LA REGINA DELLE SERRE'],
     intro: ['La serra panoramica. Un tempo ci si prendeva il tè tra le palme.', 'Ora si prende quello che cade dal soffitto.'],
     outro: ['La regina è caduta. Le orchidee ringraziano.', 'Il prossimo è il vagone del carbone, a cielo aperto. Prendi un ombrello.'] },
   { name: 'Vagone del carbone', sign: 'CARBONE', wx: 'A CIELO APERTO', shop: true, build: () => buildCoal(6),
-    waves: [[['fuochista', 3], ['scheletro', 3], ['ratto', 3], ['fuochista', 3]], [['fuochista', 3], ['ragno', 3], ['scheletro', 3], ['arciere', 3], ['fuochista', 3]], [['fuochista', 3], ['fuochista', 3], ['scheletro', 3], ['ragno', 3], ['arciere', 3], ['ratto', 3]]],
+    waves: [[['fuochista', 3], ['scheletro', 3], ['ratto', 3]], [['fuochista', 3], ['ragno', 3], ['scheletro', 3], ['arciere', 3]], [['fuochista', 3], ['fuochista', 3], ['scheletro', 3], ['ragno', 3], ['ratto', 3]]],
     subs: ['SALTANO GIÙ DAL TENDER', 'BRACI NELL\'ARIA', 'TUTTI I FUOCHISTI IN PIEDI'],
     intro: ['Il vagone del carbone. Il cuore nero del treno.', 'I fuochisti non hanno mai smesso di spalare. Non smettono nemmeno per te.'],
     outro: ['Ben fatto. Sei coperto di fuliggine, ma vivo.', 'Il robot ha riaperto bottega. Poi il vagone blindato: c\'è il tesoro della compagnia, e le guardie lo sanno.'] },
   { name: 'Vagone blindato', sign: 'BLINDATO', wx: 'SOTTO CHIAVE', build: () => buildVault(7),
-    waves: [[['guardia', 3], ['arciere', 3], ['ratto', 3], ['guardia', 3]], [['guardia', 3], ['mimic', 3], ['arciere', 3], ['guardia', 3], ['cuoco', 3]], [['guardia', 3], ['guardia', 3], ['mimic', 3], ['arciere', 3], ['fuochista', 3], ['guardia', 3]]],
+    waves: [[['guardia', 3], ['arciere', 3], ['ratto', 3]], [['guardia', 3], ['mimic', 3], ['arciere', 3], ['cuoco', 3]], [['guardia', 3], ['guardia', 3], ['arciere', 3], ['fuochista', 3], ['mimic', 3]]],
     subs: ['ALLARME!', 'RINFORZI DALLA CASSAFORTE', 'L\'ULTIMA RONDA'],
     intro: ['Il vagone blindato. Oro, banconote, gioielli. E guardie che non vanno mai in pensione.', 'Tocca qualcosa e scatta l\'allarme. Ah, è già scattato.'],
     outro: ['Il tesoro è salvo. Più o meno.', 'Avanti l\'officina. Gli automi che ci lavorano hanno la molla un po\' tirata.'] },
   { name: 'Officina a vapore', sign: 'OFFICINA', wx: 'VAPORE E INGRANAGGI', build: () => buildWorkshop(8),
-    waves: [[['automa', 3], ['automa', 3], ['ratto', 3], ['fuochista', 3]], [['automa', 3], ['guardia', 3], ['automa', 4], ['ragno', 3], ['arciere', 3]], [['automa', 4], ['automa', 4], ['guardia', 4], ['fuochista', 4], ['automa', 4], ['ragno', 4]]],
+    waves: [[['automa', 3], ['ratto', 3], ['fuochista', 3]], [['automa', 3], ['guardia', 3], ['ragno', 3], ['arciere', 3]], [['automa', 4], ['guardia', 4], ['fuochista', 4], ['automa', 4]]],
     subs: ['SI CARICANO GLI AUTOMI', 'CATENA DI MONTAGGIO', 'PRESSIONE AL MASSIMO'],
     intro: ['L\'officina. Qui si riparano i pezzi del treno.', 'Gli automi a molla ti considerano un pezzo da riparare.'],
     outro: ['Ingranaggi fermi. Ottimo lavoro, meccanico.', 'Il prossimo è il salone di prima classe. Dopo, la locomotiva.'] },
   { name: 'Salone di prima classe', sign: 'SALONE', wx: 'PRIMA CLASSE', shop: true, build: () => buildLounge(9),
-    waves: [[['fantasma', 4], ['scheletro', 4], ['guardia', 4], ['arciere', 4], ['cuoco', 4]], [['automa', 4], ['ragno', 4], ['fuochista', 4], ['fantasma', 4], ['mimic', 4], ['guardia', 4]], [['bigliettaio', 4], ['fantasma', 4], ['arciere', 4], ['scheletro', 4]]],
+    waves: [[['fantasma', 4], ['scheletro', 4], ['guardia', 4], ['arciere', 4]], [['automa', 4], ['ragno', 4], ['fuochista', 4], ['fantasma', 4], ['mimic', 4]], [['bigliettaio', 5], ['fantasma', 4], ['arciere', 4], ['scheletro', 4]]],
     subs: ['LA PRIMA CLASSE SI ALZA', 'NIENTE BIGLIETTO, NIENTE PIANOFORTE', 'IL BIGLIETTAIO È TORNATO'],
     intro: ['Il salone di prima classe. Il mio preferito.', 'Mettiti comodo. Il mio bigliettaio ha chiesto di salutarti di persona. Di nuovo.'],
     outro: ['Anche il salone è tuo. Il robot ti aspetta con la bottega, per l\'ultima volta.', 'La porta davanti a te dà sulla locomotiva. Ti sto aspettando. Porta il biglietto.'] },
   { name: 'Locomotiva', sign: 'LOCOMOTIVA', wx: 'FUOCO E VAPORE', build: () => buildLoco(10),
-    waves: [[['scheletro', 4], ['ratto', 4], ['fuochista', 4], ['ratto', 4], ['guardia', 4]], [['capotreno', 4]]],
+    waves: [[['scheletro', 4], ['ratto', 4], ['fuochista', 4], ['guardia', 4]], [['capotreno', 4]]],
     subs: ['LA SCORTA DEL CAPOTRENO', 'IL CAPOTRENO'],
     intro: ['Eccoti. Finalmente ci vediamo in faccia.', 'Questo treno non si ferma, passeggero. Non si è mai fermato. Ho perso la chiave del freno tanti anni fa.', 'Vediamo se ce l\'hai tu.'],
     outro: ['...Il freno. È lì, accanto alla caldaia.', 'Tiralo, passeggero. Fallo fermare.'] }
 ];
 const BOSS_WAGONS = [1, 5, 9, 10];
+// ritmo dei nemici vagone per vagone: nei primi sono più lenti, attaccano meno spesso, caricano i colpi più a lungo,
+// tirano proiettili più lenti e in mischia attaccano uno alla volta; la differenza si riduce fino alla locomotiva
+const EASE = [1, .88, .76, .66, .58, .5, .43, .37, .31, .25];
+function paceFor(n) {
+  const k = EASE[n - 1] === undefined ? 0 : EASE[n - 1];
+  return { k, spd: 1 - .2 * k, cd: 1 + .7 * k, tele: 1 + .5 * k, proj: 1 - .25 * k, slots: k > .6 ? 1 : 2 };
+}
+let PACE = paceFor(1);
 function wagonInfo(L, n) {
   const W = WAGONS[n - 1]; L.n = n; L.name = W.name; L.tag = 'VAGONE / ' + String(n).padStart(2, '0'); L.wx = W.wx;
   L.obj = n < WAGONS.length ? 'Sopravvivi alle ondate e apri la porta del Vagone ' + (n + 1) : 'Sconfiggi il capotreno e ferma il treno';
@@ -3117,10 +3150,14 @@ function startRun() {
 function enterWagon(n) {
   const W = WAGONS[n - 1];
   Object.assign(run, { n, wave: -1, active: false, timer: 0, queue: [], cleared: false, waves: W.waves, talkT: 0, shopT: 0, shop: null });
+  PACE = paceFor(n);
+  // ogni vagone si comincia con la vita piena
+  const healed = p.hp < p.max; p.hp = p.max;
   setLevel(buildWagon(n));
   const ps = petSpot(2.2, .5); pet.x = ps[0]; pet.z = ps[1]; pet.vx = pet.vz = 0;
   UI.coins(); UI.map(); UI.player();
   UI.banner('VAGONE ' + n, W.name.toUpperCase());
+  if (healed) UI.toast('Bullone ti ha rimesso in sesto: vita piena', '#6af08a');
   setTimeout(() => { if (run && run.n === n && STATE === 'play') UI.dialog(W.intro, 'CAPOTRENO'); }, 900);
 }
 function transition(fn) { UI.fade(true); setTimeout(() => { fn(); warmUp(); setTimeout(() => UI.fade(false), 80); }, 460); }
@@ -3211,7 +3248,8 @@ function playerAttack() {
   }
   if (t.style === 'chain') { castChain(w, t); return; }
   // il colpo parte dalla mano e va dove punta il mirino (con un piccolo aiuto se c'è un nemico vicino al centro)
-  const mg = t.kind === 'magic', tg = aimTarget(mg ? 18 : 22, isTouch ? .2 : .06), m = muzzle();
+  const mg = t.kind === 'magic', tg = aimTarget(mg ? 18 : 22, isTouch ? .2 : .09), m = muzzle();
+  if (tg.e) { const tt = Math.hypot(tg.x - m.x, tg.z - m.z) / t.spd; tg.x += tg.e.vx * tt; tg.z += tg.e.vz * tt; }
   const dx = tg.x - m.x, dy = tg.y - m.y, dz = tg.z - m.z, dl = Math.hypot(dx, dy, dz) || 1;
   const n = t.shots || 1, kind = t.proj, per = n > 1 ? w.dmg / n : w.dmg;
   for (let i = 0; i < n; i++) {
@@ -3320,17 +3358,18 @@ function updatePet(dt) {
 }
 
 /* ---------- nemici ---------- */
-const SPEED = { ratto: [4.2, 5.0], scheletro: [2.4, 2.9], arciere: [2.6, 2.8], bigliettaio: [2.4, 2.4], cuoco: [2.5, 2.8], mimic: [0, 0], fantasma: [2.2, 2.6], ragno: [5.2, 6.0], regina: [2.6, 2.8], fuochista: [2.4, 2.7], guardia: [2.0, 2.2], automa: [2.6, 2.9], capotreno: [2.7, 2.7] };
+const SPEED = { ratto: [4.2, 5.0], scheletro: [2.4, 2.9], arciere: [2.6, 2.8], bigliettaio: [2.4, 2.4], cuoco: [2.5, 2.8], mimic: [0, 0], fantasma: [2.2, 2.6], ragno: [4.4, 5.0], regina: [2.6, 2.8], fuochista: [2.4, 2.7], guardia: [2.0, 2.2], automa: [2.6, 2.9], capotreno: [2.7, 2.7] };
 // mode: roof cade dall'alto, rise emerge dal pavimento, fade appare (volanti), sleep finge di essere un baule
 function spawnEnemy(type, lvl, x, z, mode) {
-  const d = MOBS[type], wtype = pick(d.wpn), model = makeMobModel(type, wtype);
+  const d = MOBS[type], wl = d.wpn.filter(w => lvl >= ((d.wpnLvl || {})[w] || 1)), wtype = pick(wl.length ? wl : d.wpn), model = makeMobModel(type, wtype);
   scene.add(model);
   const fly = !!d.fly; mode = mode || (fly ? 'fade' : 'roof');
   if (d.light || model.userData.light) takeSpare();
   const hpK = d.elite ? 1 + .25 * (lvl - 1) : 1 + .35 * (lvl - 1), sp = SPEED[type] || [2.5, 2.8];
   const e = { type, lvl, x, z, y: fly ? 1.3 : mode === 'roof' ? (level.dropY || 7.5) : mode === 'rise' ? -1.9 : 0, vx: 0, vz: 0, vy: 0, r: d.r, face: Math.atan2(p.x - x, p.z - z), hp: Math.round(d.hp * hpK), state: mode === 'sleep' ? 'sleep' : 'walk', st: 0, cd: rnd(.7, 1.4), stun: 0, kbT: 0, bite: 0, flash: 0,
-    falling: mode === 'roof' && !fly, rising: mode === 'rise' ? .75 : 0, fadeIn: fly ? 1.2 : 0, weapon: wtype, model, spd: rnd(sp[0], sp[1]), dashT: 0, dashCd: 4.5, tickCd: 2.4, blinkCd: rnd(2.5, 4), wakeT: rnd(8, 12), side: Math.random() < .5 ? -1 : 1, seenWeak: false, phase: Math.random() * 6 };
+    falling: mode === 'roof' && !fly, rising: mode === 'rise' ? .75 : 0, fadeIn: fly ? 1.2 : 0, weapon: wtype, model, spd: rnd(sp[0], sp[1]) * PACE.spd, dashT: 0, dashCd: 4.5, tickCd: 2.4, blinkCd: rnd(2.5, 4), wakeT: rnd(8, 12), side: Math.random() < .5 ? -1 : 1, seenWeak: false, phase: Math.random() * 6 };
   if (type === 'fantasma') e.vis = 1;
+  if (type === 'bigliettaio') e.hov = 1.3;
   e.max = e.hp;
   e.ringMat = (fly ? MAT.ringTeal : MAT.ringRed).clone(); e.ring = addRing(model, e.ringMat, d.ring);
   model.position.set(x, e.y, z); model.rotation.y = e.face;
@@ -3351,7 +3390,7 @@ function hitEnemy(e, base, tag, crit, ang, kb, aoe) {
   const top = e.y + HIT[e.type][0] + HIT[e.type][1] + .3;
   // lo scudo della guardia para i colpi frontali (non il martello, la magia ad area, la scivolata)
   if (def.shield && e.stun <= 0 && e.state !== 'strike' && e.state !== 'recover' && !aoe && tag !== 'martello' && tag !== 'slide' && Math.abs(angDiff(e.face, ang + Math.PI)) < 1.15) {
-    dmg *= .15; sfx('parry'); Sparks.emit(e.x + Math.sin(e.face) * .5, e.y + 1.1, e.z + Math.cos(e.face) * .5, 12, 0xffe0a0, 3, 2, .3, 3);
+    dmg *= .4; sfx('parry'); Sparks.emit(e.x + Math.sin(e.face) * .5, e.y + 1.1, e.z + Math.cos(e.face) * .5, 12, 0xffe0a0, 3, 2, .3, 3);
     if (!e.blockTxt || T - e.blockTxt > .8) { e.blockTxt = T; UI.dmg(e.x, top, e.z, 'PARATO', '#c8d0d8'); }
     kb = kb * .3;
   }
@@ -3387,10 +3426,12 @@ function steer(e, tx, tz, speed, opt, dt) {
   for (const off of [0, .5, -.5, 1, -1, 1.6, -1.6, 2.3, -2.3]) { const aa = a + off; if (!blockedAt(e.x + Math.sin(aa) * 1.1, e.z + Math.cos(aa) * 1.1, e.r * .8, opt)) { a = aa; break; } }
   const k = Math.min(1, dt * 7); e.vx += (Math.sin(a) * speed - e.vx) * k; e.vz += (Math.cos(a) * speed - e.vz) * k;
 }
-const WARN = new Set(['windup', 'draw', 'throw', 'crouch', 'wind', 'stomp', 'spit', 'cast']);
+const WARN = new Set(['windup', 'draw', 'throw', 'crouch', 'wind', 'stomp', 'spit', 'cast', 'aim']);
 function updateEnemy(e, dt) {
-  e.flash -= dt; e.cd -= dt; e.bite -= dt; e.kbT -= dt; e.phase += dt;
   const def = MOBS[e.type], u = e.model.userData, opt = { rat: !!def.rat, fly: !!def.fly };
+  // chi attacca alle spalle (fuori dallo sguardo) ricarica a metà velocità
+  const seen = Math.abs(angDiff(LOOK.yaw, Math.atan2(e.x - p.x, e.z - p.z))) < 1.0, k = (seen ? 1 : .5) / PACE.cd;
+  e.flash -= dt; e.cd -= dt * k; e.bite -= dt * k; e.kbT -= dt; e.phase += dt;
   if (e.falling) {
     e.vy -= GRAV * dt; e.y += e.vy * dt;
     if (e.y <= 0) { e.y = 0; e.vy = 0; e.falling = false; sfx('land'); shake = Math.max(shake, def.boss ? .6 : .15); Chunks.emit(e.x, .1, e.z, 8, [0x5a5048, 0x3a342e], 2.5, .08, .6); Sparks.emit(e.x, .1, e.z, 10, 0x9a8a7a, 2.5, .5, .4, 1); }
@@ -3407,14 +3448,15 @@ function updateEnemy(e, dt) {
   if (e.stun > 0) { e.stun -= dt; e.vx *= .88; e.vz *= .88; if (e.stun <= 0) e.state = 'walk'; }
   else if (e.kbT > 0) { e.vx *= .9; e.vz *= .9; }
   else if (p.dead) { e.vx *= .9; e.vz *= .9; }
-  else if (AI[e.type]) AI[e.type](e, dt, { dx, dz, dist, toP, opt });
+  else if (AI[e.type]) AI[e.type](e, dt, { dx, dz, dist, toP, opt, k, tele: PACE.tele });
   // salti di bauli e ragni
   if (def.jumps && e.air) { e.vy -= GRAV * dt; e.y += e.vy * dt; if (e.y <= 0) { e.y = 0; e.vy = 0; e.air = false; e.landed = true; } }
   e.x += e.vx * dt; e.z += e.vz * dt;
   collide(e, opt);
   if (def.fly) {
     e.x = clamp(e.x, level.x0 + 1, level.x1 - 1); e.z = clamp(e.z, level.z0 + 1, level.z1 - 1);
-    e.y = e.type === 'bigliettaio' ? 1.3 + Math.sin(T * 2.2) * .15 : .35 + Math.sin(T * 1.8 + e.phase) * .12;
+    if (e.type === 'bigliettaio') { e.hov += ((e.state === 'tired' ? .75 : 1.3) - e.hov) * Math.min(1, dt * 4); e.y = e.hov + Math.sin(T * 2.2) * (e.state === 'tired' ? .05 : .15); }
+    else e.y = .35 + Math.sin(T * 1.8 + e.phase) * .12;
   } else if (!def.jumps) e.y = 0;
   // posa del modello
   const m = e.model, spd = Math.hypot(e.vx, e.vz);
@@ -3450,6 +3492,7 @@ function projMesh(o) {
   return mesh;
 }
 function spawnProj(o) {
+  if (o.from === 'e' && !o.g) { o.vx *= PACE.proj; o.vz *= PACE.proj; if (o.vy) o.vy *= PACE.proj; }
   const mesh = projMesh(o);
   o.vy = o.vy || 0; o.g = o.g || 0; mesh.position.set(o.x, o.y, o.z); orientProj(o, mesh); scene.add(mesh);
   o.mesh = mesh; o.hit = new Set(); o.r = o.kind === 'bolt' || o.kind === 'fire' || o.kind === 'web' ? .25 : o.kind === 'pellet' ? .12 : .18; projs.push(o); return o;
@@ -3462,7 +3505,7 @@ function orientProj(o, m) {
 function projEnd(q, x, y, z, wall) {
   q.life = 0;
   if (q.kind === 'fire' && q.from === 'p') explode(x, Math.max(.3, y), z, q.boom || 2.4, q.dmg, q.crit, q.tag);
-  else if (q.kind === 'coal' && q.from === 'e') { const gy = floorAt(x, z); firePatch(x, z, gy, 1.2, 3.2); Sparks.emit(x, gy + .2, z, 14, 0xff8a30, 2, 2.5, .5, 3); }
+  else if (q.kind === 'coal' && q.from === 'e') { const gy = floorAt(x, z); firePatch(x, z, gy, 1.0, 2.6); Sparks.emit(x, gy + .2, z, 14, 0xff8a30, 2, 2.5, .5, 3); }
   else Sparks.emit(x, y, z, wall ? 6 : 5, q.kind === 'bolt' ? 0xc98bff : q.kind === 'web' ? 0xd8f0c0 : 0xffd8a0, 2, 1.5, .3, 4);
 }
 function updateProjs(dt) {
@@ -3654,9 +3697,8 @@ function openChest(k) {
   k.open = true; k.openT = k.t; sfx('open'); shake = .3;
   const n = 20 + run.n * 5;
   for (let i = 0; i < n; i++) { const c = dropPick('coin', k.x, k.z); c.vy = rnd(6, 10); c.vx = rnd(-4, 4); c.vz = rnd(-4, 4); }
-  const h = dropPick('heart', k.x, k.z); h.vy = 7;
   Sparks.emit(k.x, 1, k.z, 40, 0xffd27a, 3, 5, .9, 3);
-  UI.toast('Ricompensa del vagone: ' + n + ' monete e un cuore', '#e9b45c');
+  UI.toast('Ricompensa del vagone: ' + n + ' monete', '#e9b45c');
 }
 // la bottega: arriva a vagone libero nei vagoni con la bottega
 function openShop() {
@@ -3666,7 +3708,7 @@ function openShop() {
   addObs(level, x - 1.05, x + 1.05, z - .55, z + 1.6, 1.0);
   Sparks.emit(x, 1, z, 30, 0xffd27a, 2.5, 3, .8, 2); Puffs.emit(x, .5, z, 4, 1.4, 0xb8b0a8, .3); sfx('open');
   const lvl = Math.min(5, 1 + Math.ceil(run.n / 2)), types = Object.keys(WT);
-  run.shop = { items: [{ kind: 'heal', price: 10 }, { kind: 'max', price: 30 + run.bought * 10 }, { kind: 'weapon', w: genWeapon(pick(types), lvl, .3) }, { kind: 'weapon', w: genWeapon(pick(types), lvl, .55) }] };
+  run.shop = { items: [{ kind: 'max', price: 30 + run.bought * 10 }, { kind: 'weapon', w: genWeapon(pick(types), lvl, .3) }, { kind: 'weapon', w: genWeapon(pick(types), lvl, .55) }] };
   for (const it of run.shop.items) if (it.w) it.price = 18 + it.w.lvl * 4 + it.w.rar * 14;
   level.shadowDirty = 3;
 }
@@ -3693,10 +3735,10 @@ function startWave(i) {
       // quasi sempre arrivano davanti a chi gioca, ogni tanto alle spalle
       const c = level.spawnPts.filter(s => { const dd = (s[0] - p.x) ** 2 + (s[1] - p.z) ** 2; return dd > 30 && dd < 260; });
       const v = c.filter(s => Math.abs(angDiff(LOOK.yaw, Math.atan2(s[0] - p.x, s[1] - p.z))) < 1.0);
-      pt = pick(v.length && Math.random() < .8 ? v : c.length ? c : level.spawnPts);
+      pt = pick(v.length && Math.random() < .8 + .2 * PACE.k ? v : c.length ? c : level.spawnPts);
       mode = def.fly ? 'fade' : level.spawnMode || 'roof';
     }
-    run.queue.push({ type, lvl, x: pt[0], z: pt[1], d: delay, mode }); delay += .6;
+    run.queue.push({ type, lvl, x: pt[0], z: pt[1], d: delay, mode }); delay += .6 * PACE.cd;
   }
   const last = run.waves[i].find(([t]) => MOBS[t].boss || MOBS[t].elite);
   if (last) setTimeout(() => { if (STATE === 'play' && run && !p.dead) UI.toast(last[0] === 'capotreno' ? 'Capotreno: «Biglietto, prego.»' : last[0] === 'regina' ? 'Capotreno: «Non guardarla negli otto occhi.»' : 'Capotreno: «Il mio bigliettaio è molto zelante.»', '#62d4c7'); }, 1800);
@@ -3719,7 +3761,10 @@ function updateWaves(dt) {
       if (WAGONS[run.n - 1].shop) run.shopT = .8; // arriva appena prima che il capotreno ne parli
       UI.objective();
       run.talkT = 1; // il capotreno parla a forziere atterrato, anche se il dispositivo va a scatti
-    } else run.timer = 1.8;
+    } else {
+      run.timer = 1.8 * PACE.cd;
+      if (p.hp < p.max) { p.hp++; UI.player(); UI.toast('Bullone ti rimette in sesto: +1 vita', '#6af08a'); sfx('pick'); if (pet) Sparks.emit(pet.x, .8, pet.z, 16, 0x6af08a, 2, 2, .6, 1); }
+    }
   }
   if (!run.active && run.timer > 0) { run.timer -= dt; if (run.timer <= 0) startWave(run.wave + 1); }
   enemies = enemies.filter(e => !e.dead);
@@ -4351,10 +4396,9 @@ const UI = (() => {
     if (!run || !run.shop) return;
     const S = run.shop;
     const card = (it, i) => {
-      const can = !it.sold && run.coins >= it.price && !(it.kind === 'heal' && p.hp >= p.max);
+      const can = !it.sold && run.coins >= it.price;
       let body;
-      if (it.kind === 'heal') body = '<b>Tè caldo del robot</b><div class="meta">CURA · +2 VITA</div><p class="note">Bollente, dolce, vagamente metallico.</p>';
-      else if (it.kind === 'max') body = '<b>Ingranaggio di scorta</b><div class="meta">VITA MASSIMA +1 · CURA TUTTO</div><p class="note">Va avvitato da qualche parte. Meglio non chiedere dove.</p>';
+      if (it.kind === 'max') body = '<b>Ingranaggio di scorta</b><div class="meta">VITA MASSIMA +1 · CURA TUTTO</div><p class="note">Va avvitato da qualche parte. Meglio non chiedere dove.</p>';
       else body = weaponCard(it.w, p.weapon);
       return '<div class="item' + (it.sold ? ' sold' : '') + '">' + body + '<button class="' + (can ? 'cta' : 'ghost') + '" type="button" data-buy="' + i + '"' + (can ? '' : ' disabled') + '>' + (it.sold ? 'Venduto' : 'Compra · ' + it.price) + '</button></div>';
     };
@@ -4365,8 +4409,7 @@ const UI = (() => {
         if (t.dataset.buy === undefined) return;
         const it = S.items[+t.dataset.buy]; if (!it || it.sold || run.coins < it.price) { sfx('hurt'); return; }
         run.coins -= it.price; sfx('coin');
-        if (it.kind === 'heal') { p.hp = Math.min(p.max, p.hp + 2); }
-        else if (it.kind === 'max') { p.max++; p.hp = p.max; it.sold = true; run.bought++; }
+        if (it.kind === 'max') { p.max++; p.hp = p.max; it.sold = true; run.bought++; }
         else { const old = p.weapon; p.weapon = it.w; setModelWeapon(p.model, it.w); it.sold = true; if (merchant) dropPick('weapon', merchant.x - 1.8, merchant.z - 1.4, old); toast('Equipaggiata: ' + it.w.name, RAR[it.w.rar].c); }
         sfx('pick'); player(); coins(); draw();
       }

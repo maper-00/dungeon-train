@@ -300,10 +300,9 @@ const UI = (() => {
     if (!run || !run.shop) return;
     const S = run.shop;
     const card = (it, i) => {
-      const can = !it.sold && run.coins >= it.price && !(it.kind === 'heal' && p.hp >= p.max);
+      const can = !it.sold && run.coins >= it.price;
       let body;
-      if (it.kind === 'heal') body = '<b>Tè caldo del robot</b><div class="meta">CURA · +2 VITA</div><p class="note">Bollente, dolce, vagamente metallico.</p>';
-      else if (it.kind === 'max') body = '<b>Ingranaggio di scorta</b><div class="meta">VITA MASSIMA +1 · CURA TUTTO</div><p class="note">Va avvitato da qualche parte. Meglio non chiedere dove.</p>';
+      if (it.kind === 'max') body = '<b>Ingranaggio di scorta</b><div class="meta">VITA MASSIMA +1 · CURA TUTTO</div><p class="note">Va avvitato da qualche parte. Meglio non chiedere dove.</p>';
       else body = weaponCard(it.w, p.weapon);
       return '<div class="item' + (it.sold ? ' sold' : '') + '">' + body + '<button class="' + (can ? 'cta' : 'ghost') + '" type="button" data-buy="' + i + '"' + (can ? '' : ' disabled') + '>' + (it.sold ? 'Venduto' : 'Compra · ' + it.price) + '</button></div>';
     };
@@ -314,8 +313,7 @@ const UI = (() => {
         if (t.dataset.buy === undefined) return;
         const it = S.items[+t.dataset.buy]; if (!it || it.sold || run.coins < it.price) { sfx('hurt'); return; }
         run.coins -= it.price; sfx('coin');
-        if (it.kind === 'heal') { p.hp = Math.min(p.max, p.hp + 2); }
-        else if (it.kind === 'max') { p.max++; p.hp = p.max; it.sold = true; run.bought++; }
+        if (it.kind === 'max') { p.max++; p.hp = p.max; it.sold = true; run.bought++; }
         else { const old = p.weapon; p.weapon = it.w; setModelWeapon(p.model, it.w); it.sold = true; if (merchant) dropPick('weapon', merchant.x - 1.8, merchant.z - 1.4, old); toast('Equipaggiata: ' + it.w.name, RAR[it.w.rar].c); }
         sfx('pick'); player(); coins(); draw();
       }
