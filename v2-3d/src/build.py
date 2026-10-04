@@ -1,0 +1,23 @@
+import sys, re
+# uso: python3 build.py out.html [local]
+out = sys.argv[1]; local = len(sys.argv) > 2 and sys.argv[2] == 'local'
+base = '../three/package/' if local else 'https://cdn.jsdelivr.net/npm/three@0.147.0/'
+libs = ['build/three.min.js', 'examples/js/shaders/CopyShader.js', 'examples/js/shaders/LuminosityHighPassShader.js',
+        'examples/js/postprocessing/EffectComposer.js', 'examples/js/postprocessing/RenderPass.js', 'examples/js/postprocessing/ShaderPass.js',
+        'examples/js/postprocessing/UnrealBloomPass.js', 'examples/js/utils/BufferGeometryUtils.js']
+order = ['core', 'render', 'models', 'levels', 'game', 'ui', 'main']
+head = open('head.html').read()
+code = '\n'.join(open('js/%s.js' % n).read() for n in order)
+if local: code += '\nwindow.DBG = { get p() { return p; }, get level() { return level; }, get run() { return run; }, get enemies() { return enemies; }, get picks() { return picks; }, get STATE() { return STATE; }, get pet() { return pet; }, interact, startWagon, startHub, transition, UI, save, renderer, camera, scene, hitEnemy, hurtPlayer, spawnEnemy, applyQuality, CAM, nearInter, held, pressed, press, Q: () => Q, VIEW: () => VIEW, Rain, Wind, Sparks, Dust, Chunks, bloom, grade, composer, moon };'
+fail = '''function showFail(err) {
+  if (err) console.error(err);
+  if (document.querySelector('.fail')) return;
+  const d = document.createElement('div'); d.className = 'fail';
+  d.innerHTML = '<div><b>La grafica 3D non è partita.</b><br>Questo browser non riesce ad avviare WebGL. Prova con Chrome, Safari o Firefox aggiornati, oppure disattiva il risparmio energetico e ricarica la pagina.</div>';
+  document.body.appendChild(d);
+}'''
+html = head + '\n' + '\n'.join('<script src="%s%s"></script>' % (base, l) for l in libs) + \
+  '\n<script>\n(function () {\n"use strict";\n' + fail + '\ntry {\nif (!window.THREE || !THREE.EffectComposer || !THREE.UnrealBloomPass || !THREE.BufferGeometryUtils) throw new Error("three.js non caricato");\n' + code + '\n} catch (err) { showFail(err); }\n})();\n</script>\n'
+if local: html = '<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>' + html + '</body></html>'
+open(out, 'w').write(html)
+print(out, len(html), 'bytes')
