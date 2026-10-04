@@ -83,23 +83,45 @@ const VM = { root: null, key: '', u: null, sx: 0, sy: 0, atkSide: 1, recoil: 0, 
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const Z_NEG = V3(0, 0, -1), _va = V3(0, 0, 0), _vd = V3(0, 0, 0), _vh = V3(0, 0, 0), _vn = V3(0, 0, 0), _vq = new THREE.Quaternion(), _vr = new THREE.Quaternion();
 function vmBox(parent, mat, w, h, d, x, y, z) { const m = new THREE.Mesh(boxGeo(w, h, d), mat); m.position.set(x, y, z); parent.add(m); return m; }
-function cuffMat(cls) { return cls === 'cavaliere' ? MAT.steel : cls === 'ranger' ? MAT.leather : MAT.brass; }
+function vmPart(parent, mat, geo, x = 0, y = 0, z = 0) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; }
 const ARM = .78; // dalla spalla al centro della mano
+// la stoffa vista da vicinissimo: trama molto più fitta
+function fineUV(g, k = 5) { const uv = g.attributes.uv.array; for (let i = 0; i < uv.length; i++) uv[i] *= k; return g; }
 function buildArm(root, side, om, cls) {
   // la manica sta in un gruppo a parte: si allunga quando la mano deve arrivare più lontano
   const sh = pivot(root, side * .5, -.6, .12), sl = pivot(sh, 0, 0, 0);
-  vmBox(sl, om[0], .16, .16, .66, 0, 0, -.33);
-  vmBox(sl, om[1], .18, .18, .08, 0, 0, -.1);
-  vmBox(sl, cuffMat(cls), .18, .18, .13, 0, 0, -.62);
-  if (cls === 'cavaliere') vmBox(sl, MAT.steelDark, .19, .045, .24, 0, .095, -.48);
-  const hand = pivot(sh, 0, 0, -ARM), skin = cls === 'cavaliere' ? MAT.steelDark : MAT.skin;
-  vmBox(hand, skin, .14, .15, .15, 0, 0, 0);
-  vmBox(hand, skin, .05, .06, .12, -side * .085, .04, -.03);
-  // nocche e dita chiuse sull'impugnatura
-  for (let i = 0; i < 4; i++) { vmBox(hand, skin, .032, .04, .05, (i - 1.5) * .034, .065, -.06); vmBox(hand, skin, .032, .05, .04, (i - 1.5) * .034, -.02, -.085); }
-  if (cls === 'cavaliere') vmBox(hand, MAT.steel, .15, .03, .16, 0, .085, .01);
+  if (cls === 'mago') {
+    // manica a campana con il bordo d'ottone
+    vmPart(sl, om[0], sg('vmSleeveM', () => fineUV(lathe([[.095, 0], [.088, .3], [.1, .5], [.128, .6], [.12, .615], [.09, .58]], 24).rotateX(-Math.PI / 2))));
+    vmPart(sl, MAT.brassAged, sg('vmTrimM', () => new THREE.TorusGeometry(.125, .01, 6, 28)), 0, 0, -.607);
+  } else {
+    vmPart(sl, om[0], sg('vmSleeve', () => fineUV(tubeZ(.1, .07, .62, 24))), 0, 0, -.31);
+    vmPart(sl, om[1], sg('vmFold', () => new THREE.TorusGeometry(.088, .02, 8, 24)), 0, 0, -.2);
+  }
+  if (cls === 'cavaliere') {
+    // bracciale d'acciaio a lamine con i rivetti
+    vmPart(sl, MAT.cSteel, sg('vmVamb', () => tubeZ(.084, .068, .3, 28)), 0, 0, -.5);
+    for (const [z, r] of [[-.36, .084], [-.64, .068]]) vmPart(sl, MAT.brassAged, sg('vmVambRim' + r, () => new THREE.TorusGeometry(r, .01, 6, 28)), 0, 0, z);
+    for (let i = 0; i < 5; i++) { const a = i / 5 * TAU + .4; vmPart(sl, MAT.brassAged, sg('vmRivet', () => sph(.01, 6, 5)), Math.cos(a) * .078, Math.sin(a) * .078, -.47); }
+  } else if (cls === 'ranger') {
+    // parabraccio di cuoio con i lacci
+    vmPart(sl, MAT.cBracer, sg('vmBracer', () => fineUV(tubeZ(.08, .066, .26, 24))), 0, 0, -.52);
+    for (let i = 0; i < 4; i++) vmPart(sl, MAT.cGloveBlack, sg('vmLace' + i, () => new THREE.TorusGeometry(.079 - i * .004, .005, 4, 20)), 0, 0, -.43 - i * .06);
+  }
+  const hand = pivot(sh, 0, 0, -ARM);
+  const skin = cls === 'cavaliere' ? MAT.cSteel : cls === 'ranger' ? MAT.cGloveBlack : MAT.cSkin, fing = cls === 'ranger' ? MAT.cSkin : skin;
+  vmPart(hand, skin, sg('vmWrist', () => tubeZ(.064, .058, .14, 16)), 0, 0, .1);
+  vmPart(hand, skin, sg('vmPalm', () => rbox(.15, .11, .14, .05)), side * .01, 0, .02);
+  if (cls === 'mago') vmPart(hand, MAT.brassAged, sg('vmRingM', () => new THREE.TorusGeometry(.03, .008, 6, 12)), -side * .02, .05, -.04);
   const grip = new THREE.Group(); hand.add(grip);
-  return { sh, sl, hand, grip, base: sh.position.clone() };
+  return { sh, sl, hand, grip, base: sh.position.clone(), fing, side };
+}
+// pugno: quattro dita piegate attorno all'asse z del gruppo (il manico dell'arma) e il pollice che le chiude
+function fist(parent, A, s = 1, axisX = false, z = 0) {
+  const f = new THREE.Group(); f.position.z = z; f.scale.setScalar(s); if (axisX) f.rotation.y = Math.PI / 2; parent.add(f);
+  for (let i = 0; i < 4; i++) { const m = vmPart(f, A.fing, sg('vmFinger', () => new THREE.TorusGeometry(.055, .027, 8, 14, Math.PI * 1.4)), 0, 0, -.06 + i * .04); m.rotation.z = A.side > 0 ? -.35 : Math.PI + .35; m.scale.setScalar(1 - Math.abs(i - 1.3) * .06); }
+  const th = vmPart(f, A.fing, sg('vmThumb', () => capsule(.027, .07, 8)), A.side * .05, .045, -.08); th.rotation.set(Math.PI / 2, 0, A.side * .6);
+  return f;
 }
 // orienta il braccio lungo a e l'arma che tiene lungo d (roll: rotazione dell'arma sul proprio asse)
 function aimArm(A, a, d, roll = 0, len = ARM) {
@@ -125,12 +147,16 @@ function buildViewModel() {
     // arco verticale nella sinistra: la pancia (+z del modello) guarda avanti, la lunghezza (x) va in verticale
     wm.rotation.set(0, Math.PI, -Math.PI / 2, 'ZYX'); L.grip.add(wm);
     wm.traverse(o => { if (o.isMesh && o.material === MAT.cream) o.visible = false; });
-    strA = vmBox(wm, MAT.cream, 1, .018, .018, 0, 0, 0); strB = vmBox(wm, MAT.cream, 1, .018, .018, 0, 0, 0);
-    arrow = new THREE.Group(); vmBox(arrow, MAT.cream, .04, .04, .92, 0, 0, .46); vmBox(arrow, MAT.steel, .08, .08, .14, 0, 0, .95); vmBox(arrow, MAT.red, .02, .1, .16, 0, 0, .06);
+    strA = vmPart(wm, MAT.cream, sg('vmStr', () => new THREE.CylinderGeometry(.008, .008, 1, 4).rotateZ(Math.PI / 2))); strB = vmPart(wm, MAT.cream, sg('vmStr'));
+    arrow = new THREE.Group(); vmPart(arrow, MAT.oak, sg('vmShaft', () => tubeZ(.014, .014, .92, 6)), 0, 0, .46);
+    vmPart(arrow, MAT.steel, sg('vmHead', () => new THREE.ConeGeometry(.04, .15, 4).rotateX(Math.PI / 2)), 0, 0, .98);
+    for (let i = 0; i < 3; i++) { const f = vmPart(arrow, MAT.cRibbon, sg('vmFletch', () => rbox(.004, .05, .16, .002)), Math.sin(i * TAU / 3) * .025, Math.cos(i * TAU / 3) * .025, .08); f.rotation.z = -i * TAU / 3; }
     arrow.position.x = .15; wm.add(arrow); // poggia sopra la mano, sulla finestra dell'arco
+    fist(wm, L, 1 / VMS.arco, true, .13); fist(R.grip, R, 1, true);
   } else {
     // la lama (o il bastone, la canna, il libro) esce dal pugno in avanti
     wm.rotation.set(0, Math.PI, 0); wm.position.z = w.type === 'bastone' ? .3 * VMS.bastone : 0; R.grip.add(wm);
+    fist(wm, R, 1 / (VMS[w.type] || .62), false, w.type === 'bastone' ? -.3 : 0); fist(L.grip, L, 1, true);
   }
   // riflesso dorato della parata: un bagliore morbido davanti al braccio
   const parry = glowSprite(root, -.1, -.12, -1.0, 1.5, 0xffd890, 0);

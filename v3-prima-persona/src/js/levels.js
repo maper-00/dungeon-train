@@ -121,7 +121,7 @@ function buildHub() {
   L.name = 'Cabina letto'; L.tag = 'CABINA / 00'; L.wx = 'PIOGGIA SUI VETRI'; L.moonK = 1.0; L.hemiK = .5; L.obj = 'Prepara la corsa, poi apri la porta del Vagone 1';
   TEX.wood.repeat.set(4.5, 2.75);
   plane(L, MAT.woodFloor, 18, 11, 9, 0, 0, -Math.PI / 2);
-  plane(L, MAT.rug, 6.4, 3.6, 8.8, .025, 1.0, -Math.PI / 2);
+  plane(L, MAT.rug, 6.8, 3.6, 8.8, .025, 1.0, -Math.PI / 2);
   buildShell(L, 5.5);
   // parete di fondo con finestra
   b.box(MAT.teal, 5.35, 0, -5.75, 10.7, WH, .5).box(MAT.teal, 15.65, 0, -5.75, 4.7, WH, .5).box(MAT.teal, 12, 0, -5.75, 2.6, 1.3, .5).box(MAT.teal, 12, 3.4, -5.75, 2.6, 1.2, .5);
@@ -140,75 +140,59 @@ function buildHub() {
     nx = c;
   }
   b.box(MAT.teal, (nx + 18) / 2, 0, 5.75, 18 - nx, WH, .5);
+  for (const [cx, sd] of [[12, -1], [5.6, 1], [12.2, 1]]) windowDrapes(b, cx, 1.3, sd * 5.5, sd, 3.55);
   b.box(MAT.woodDark, 9, 0, 5.46, 18, 1.2, .08).box(MAT.brass, 9, 1.2, 5.44, 18, .06, .1).box(MAT.woodDark, 9, 4.35, 5.44, 18, .25, .14);
   for (const x of [1.6, 9.0, 15.4]) b.box(MAT.brass, x, 1.26, 5.47, .05, 3.1, .04);
   // soffitto con travi di legno e due lampade a sospensione
   b.box(MAT.tealDark, 9, WH, 0, 18.6, .22, 12);
   for (let x = 1.5; x < 18; x += 3) b.box(MAT.woodDark, x, WH - .26, 0, .24, .26, 11);
   b.box(MAT.woodDark, 9, WH - .24, -5.32, 18, .24, .36).box(MAT.woodDark, 9, WH - .24, 5.32, 18, .24, .36);
-  for (const x of [6.0, 12.6]) { b.box(MAT.brass, x, WH - .9, 0, .04, .64, .04).box(MAT.brass, x, WH - 1.06, 0, .56, .16, .56); bx(G, MAT.lamp, .36, .12, .36, x, WH - 1.14, 0, false); pool(L, x, 0, 3.4, 0xffb060, .12); }
+  for (const x of [6.0, 12.6]) { hangLamp(b, x, WH - .26, 0, .62); pool(L, x, 0, 3.4, 0xffb060, .12); }
   // pareti di testa
   b.box(MAT.teal, -.25, 0, 0, .5, WH, 12);
   b.box(MAT.teal, 18.25, 0, -3.3, .5, WH, 4.4).box(MAT.teal, 18.25, 0, 3.3, .5, WH, 4.4).box(MAT.teal, 18.25, 3.2, 0, .5, WH - 3.2, 2.2);
   b.box(MAT.brass, 18.0, 0, -1.15, .1, 3.25, .1).box(MAT.brass, 18.0, 0, 1.15, .1, 3.25, .1).box(MAT.brass, 18.0, 3.2, 0, .1, .1, 2.4);
   // ritratto del capotreno sulla parete sinistra
-  b.box(MAT.brass, .04, 1.9, 1.6, .08, 1.5, 1.15).box(MAT.black, .09, 2.0, 1.6, .04, 1.3, .95).box(MAT.navy, .12, 2.55, 1.6, .03, .3, .52).box(MAT.cream, .12, 2.2, 1.6, .03, .34, .3).box(MAT.brass, .14, 2.62, 1.6, .02, .08, .1);
-  // letto a castello
-  for (const [x, z] of [[.4, -5.3], [4.5, -5.3], [.4, -3.5], [4.5, -3.5]]) b.box(MAT.woodDark, x, 0, z, .16, 3.1, .16);
-  for (const y of [.36, 1.9]) { b.box(MAT.woodDark, 2.45, y, -4.4, 4.3, .14, 2.0); b.box(MAT.cream, 2.45, y + .14, -4.4, 4.1, .22, 1.8); b.box(MAT.cream, .95, y + .36, -4.4, .75, .16, 1.2); }
-  for (let y = .5; y < 2.9; y += .42) b.box(MAT.woodDark, 4.2, y, -3.32, .5, .06, .06);
-  b.box(MAT.woodDark, 3.95, 0, -3.32, .06, 2.9, .06).box(MAT.woodDark, 4.45, 0, -3.32, .06, 2.9, .06);
-  b.box(MAT.velvet, 3.0, 2.1, -3.36, 1.6, 1.0, .05);
-  b.box(MAT.leather, 1.5, 0, -4.3, 1.1, .32, .7).box(MAT.brass, 1.5, .1, -3.94, .3, .08, .04);
+  portraitFrame(b, .02, 1.6);
+  // letto a castello: montanti torniti, materassi morbidi, coperte scozzesi, cuscini, tenda di velluto
+  bunkBed(b);
   addObs(L, .2, 4.65, -5.5, -3.25, 3.1);
-  // libreria del bestiario
-  b.box(MAT.woodDark, 6.25, 0, -5.42, 2.1, 3.3, .1).box(MAT.woodDark, 5.25, 0, -5.08, .1, 3.3, .8).box(MAT.woodDark, 7.25, 0, -5.08, .1, 3.3, .8);
-  for (const y of [0, .8, 1.6, 2.4, 3.22]) b.box(MAT.woodDark, 6.25, y, -5.08, 2.1, .08, .8);
-  const bookMats = [MAT.red, MAT.navy, MAT.green, MAT.purple, MAT.leather, MAT.cream, MAT.velvet], R = mulberry(12);
-  for (const y of [.08, .88, 1.68, 2.48]) { let x = 5.36; while (x < 7.08) { const w = .07 + R() * .1, h = .42 + R() * .26; b.box(bookMats[Math.floor(R() * bookMats.length)], x + w / 2, y, -5.08, w, h, .5); x += w + .012; } }
-  b.box(MAT.bone, 6.65, 3.3, -5.08, .3, .28, .3).box(MAT.boneDark, 6.6, 3.42, -4.93, .07, .06, .02).box(MAT.boneDark, 6.71, 3.42, -4.93, .07, .06, .02);
-  b.box(MAT.woodDark, 6.25, 0, -4.1, .24, 1.0, .24).box(MAT.woodDark, 6.25, 0, -4.1, .6, .08, .5);
+  // libreria del bestiario: libri veri con i dorsi dorati, un teschio in cima, leggio tornito
+  bookcase(b);
   const lect = new THREE.Group(); lect.position.set(6.25, 1.05, -4.1); lect.rotation.x = .45; G.add(lect);
-  bx(lect, MAT.woodDark, .8, .06, .6, 0, 0, 0); bx(lect, MAT.paper, .34, .04, .48, -.18, .05, 0); bx(lect, MAT.paper, .34, .04, .48, .18, .05, 0);
-  for (let i = 0; i < 4; i++) { bx(lect, MAT.bookGlow, .2, .01, .03, -.18, .075, -.15 + i * .1, false); bx(lect, MAT.bookGlow, .2, .01, .03, .18, .075, -.15 + i * .1, false); }
+  openBook(lect);
   addLight(L, 6.25, 1.8, -3.8, 0x52e0d0, 1.1, 4.2, .15);
   addObs(L, 5.2, 7.3, -5.5, -4.65, 3.3); addObs(L, 5.95, 6.55, -4.4, -3.8, 1.2);
-  // armadio
-  b.box(MAT.woodDark, 9.15, 0, -5.03, 2.3, 3.8, .95).box(MAT.wood, 8.6, .2, -4.53, 1.0, 3.3, .06).box(MAT.wood, 9.7, .2, -4.53, 1.0, 3.3, .06);
-  for (const x of [8.6, 9.7]) { b.box(MAT.woodDark, x, .45, -4.49, .7, 1.2, .03).box(MAT.woodDark, x, 1.95, -4.49, .7, 1.3, .03); }
-  b.box(MAT.brass, 9.08, 1.75, -4.47, .06, .2, .05).box(MAT.brass, 9.22, 1.75, -4.47, .06, .2, .05).box(MAT.woodDark, 9.15, 3.8, -5.0, 2.5, .16, 1.06);
-  const scarf = new THREE.Mesh(boxGeo(.14, .7, .05), outfitMats[save.outfit][0]); scarf.position.set(9.15, 1.3, -4.47); scarf.castShadow = true; G.add(scarf); L.fx.scarf = scarf;
+  // armadio: noce con cornice, ante a pannelli, pomoli d'ottone
+  wardrobeProp(b);
+  const scarf = new THREE.Mesh(scarfGeo(), outfitMats[save.outfit][0]); scarf.position.set(9.15, 2.05, -4.47); scarf.castShadow = true; G.add(scarf); L.fx.scarf = scarf;
   addObs(L, 8.0, 10.3, -5.5, -4.5, 3.8);
-  // slot machine
-  b.box(MAT.slotRed, 14.6, 0, -5.05, 1.4, 1.0, .9).box(MAT.slotRed, 14.6, 1.0, -5.15, 1.3, 1.3, .7).box(MAT.brass, 14.6, 1.22, -4.79, 1.12, .74, .04);
-  b.box(MAT.brass, 14.6, 2.3, -5.15, 1.44, .26, .76).box(MAT.brass, 14.6, .78, -4.6, .6, .06, .25).box(MAT.brass, 15.36, 1.2, -5.0, .08, .8, .08);
+  // slot machine: mobile laccato, cornici cromate, insegna d'ottone, leva con il pomolo rosso
+  slotCabinet(b);
   const reels = [];
   for (let i = 0; i < 3; i++) { bx(G, MAT.slotGlow, .28, .52, .03, 14.24 + i * .36, 1.6, -4.76, false); const s = new THREE.Mesh(boxGeo(.14, .14, .03), MAT.red); s.position.set(14.24 + i * .36, 1.6, -4.74); G.add(s); reels.push(s); }
   L.fx.reels = reels; L.fx.reelMats = [emis(0xff8a80, 0xff3030, 2.5), emis(0xffe8a0, 0xffb020, 2.5), emis(0xa8d0ff, 0x3080ff, 2.5)];
-  const knob = bx(G, emis(0xff8a80, 0xe02a2a, 1.5), .16, .16, .16, 15.36, 2.08, -5.0); L.fx.knob = knob;
-  const bulbs = []; for (let i = 0; i < 7; i++) { const m = new THREE.Mesh(boxGeo(.08, .08, .04), MAT.lamp); m.position.set(14.0 + i * .2, 2.43, -4.76); G.add(m); bulbs.push(m); } L.fx.bulbs = bulbs;
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(.1, 16, 12), new THREE.MeshPhysicalMaterial({ color: lin(0xd8202a), emissive: lin(0x600808), roughness: .15, clearcoat: 1, clearcoatRoughness: .05 })); knob.position.set(15.36, 2.08, -5.0); knob.castShadow = true; G.add(knob); L.fx.knob = knob;
+  const bulbs = [], bg = new THREE.SphereGeometry(.045, 10, 8); for (let i = 0; i < 7; i++) { const m = new THREE.Mesh(bg, MAT.lamp); m.position.set(14.0 + i * .2, 2.43, -4.76); G.add(m); bulbs.push(m); } L.fx.bulbs = bulbs;
   L.fx.slotLight = addLight(L, 14.6, 1.9, -4.0, 0xff6a4a, 1.3, 5);
   addObs(L, 13.9, 15.4, -5.5, -4.55, 2.6);
   // baule delle classi
-  b.box(MAT.trunk, 14.4, 0, 2.6, 1.9, .8, 1.1).box(MAT.trunk, 14.4, .8, 2.6, 1.95, .2, 1.15).box(MAT.brass, 13.75, 0, 2.6, .08, 1.02, 1.17).box(MAT.brass, 15.05, 0, 2.6, .08, 1.02, 1.17).box(MAT.brass, 14.4, .55, 2.03, .18, .22, .06);
-  b.box(MAT.steel, 14.05, 1.0, 2.6, .16, .08, .16).box(MAT.green, 14.4, 1.0, 2.6, .16, .08, .16).box(MAT.purple, 14.75, 1.0, 2.6, .16, .08, .16);
+  classTrunk(b);
   addObs(L, 13.45, 15.35, 2.03, 3.17, 1.0, 'crate', true);
   // tavolino, poltrona, candela
-  b.box(MAT.woodDark, 4.6, 0, 1.8, .16, .75, .16).box(MAT.woodDark, 4.6, 0, 1.8, .6, .06, .6).box(MAT.wood, 4.6, .75, 1.8, 1.1, .08, 1.1).box(MAT.cream, 4.4, .83, 1.6, .1, .22, .1).box(MAT.white, 4.85, .83, 2.0, .14, .1, .14);
-  bx(G, MAT.lamp, .05, .08, .05, 4.4, 1.1, 1.6, false);
-  b.box(MAT.velvet, 3.0, 0, 2.7, 1.1, .5, 1.0).box(MAT.velvet, 3.0, .5, 3.12, 1.1, .9, .22).box(MAT.velvetDark, 2.5, 0, 2.7, .18, .78, 1.0).box(MAT.velvetDark, 3.5, 0, 2.7, .18, .78, 1.0);
+  sideTable(b, G);
+  armchair(b, 3.0, 2.72, Math.PI);
   addObs(L, 4.05, 5.15, 1.25, 2.35, .83, 'table', true); addObs(L, 2.4, 3.6, 2.2, 3.25, .55, 'seat', true);
   addLight(L, 4.4, 1.5, 1.6, 0xffad5a, 2.2, 10, .3);
   pool(L, 4.4, 1.7, 3.2, 0xffa050, .2); pool(L, 7.75, -4.2, 2.6, 0xffa860, .16); pool(L, 16.9, -4.2, 2.6, 0xffa860, .16); pool(L, 14.6, -3.7, 2.0, 0xff6a50, .16); pool(L, 6.25, -3.5, 1.6, 0x52e0d0, .14); pool(L, 17.1, 0, 1.6, 0x7af0a0, .1);
   // applique e altoparlante del capotreno
-  for (const x of [7.75, 16.9]) { b.box(MAT.brass, x, 2.6, -5.4, .14, .3, .16); bx(G, MAT.lamp, .16, .22, .14, x, 3.0, -5.3, false); addLight(L, x, 3.0, -4.9, 0xffb060, 1.5, 8, .1); }
-  b.box(MAT.brass, 16.2, 3.5, -5.44, .6, .4, .06); for (let i = 0; i < 3; i++) b.box(MAT.black, 16.2, 3.58 + i * .1, -5.4, .46, .03, .02);
+  for (const x of [7.75, 16.9]) { wallLamp(b, x, 2.86, -5.495, 0); addLight(L, x, 3.0, -4.9, 0xffb060, 1.5, 8, .1); }
+  hornSpeaker(b, 16.2, 3.62, -5.49);
   // orologio
-  b.box(MAT.brass, 12, 3.75, -5.46, .6, .5, .06).box(MAT.cream, 12, 3.8, -5.42, .48, .4, .02).box(MAT.black, 12.05, 3.98, -5.405, .03, .18, .01);
+  wallClock(b, 12, 3.93, -5.495);
   // porta verso il Vagone 1
   const door = new THREE.Group(); door.position.set(18.0, 0, 0); G.add(door);
-  const leafA = bx(door, MAT.wood, .12, 3.15, 1.1, 0, 1.58, -.55), leafB = bx(door, MAT.wood, .12, 3.15, 1.1, 0, 1.58, .55);
-  for (const lf of [leafA, leafB]) { bx(lf, MAT.black, .14, .7, .6, 0, .55, 0); bx(lf, MAT.brass, .16, .05, .9, 0, -.2, 0); }
+  const leafA = doorLeaf(door, -.55), leafB = doorLeaf(door, .55);
   L.exit = { x: 17.3, z: 0, leaves: [leafA, leafB], open: 0, target: 0 };
   const sign = plane(L, new THREE.MeshStandardMaterial({ map: signTexture('VAGONE 1', 'CARROZZA PASSEGGERI'), roughness: .5, emissive: lin(0x3a2a10), emissiveIntensity: .6 }), 1.6, .6, 17.92, 3.75, 0, 0, -Math.PI / 2, false);
   bx(G, MAT.neonGreen, .06, .1, .5, 17.95, 4.2, 0, false); addLight(L, 17.6, 4.0, 0, 0x7af0a0, .7, 3.5);
@@ -249,17 +233,15 @@ function buildPassenger() {
     px = c;
   }
   b.box(MAT.teal, (px + len) / 2, 0, -hw - .25, len - px, WH, .5);
+  for (const cx of wins) windowDrapes(b, cx, 1.36, -hw, -1, 3.2);
   const glassMat = MAT.glass.clone(); glassMat.map = TEX.glass.clone(); glassMat.map.needsUpdate = true; glassMat.map.repeat.set(1, 1); L.glass.push(glassMat.map);
   for (const cx of wins) plane(L, glassMat, 2.6, 1.8, cx, 2.3, -hw - .08, 0, 0, false);
   b.box(MAT.woodDark, len / 2, 0, -hw + .04, len, 1.2, .08).box(MAT.brass, len / 2, 1.2, -hw + .06, len, .06, .1).box(MAT.woodDark, len / 2, WH - .2, -hw + .06, len, .22, .14);
   // applique tra i finestrini
-  for (let k = 1; k < 8; k++) { const x = 8 * k; b.box(MAT.brass, x, 2.4, -hw + .08, .16, .34, .16); bx(G, MAT.lamp, .18, .24, .16, x, 2.92, -hw + .2, false); if (k % 2) addLight(L, x, 2.9, -hw + .8, 0xffb060, 2.6, 11, .12); }
+  for (let k = 1; k < 8; k++) { const x = 8 * k; wallLamp(b, x, 2.78, -hw + .005, 0); if (k % 2) addLight(L, x, 2.9, -hw + .8, 0xffb060, 2.6, 11, .12); }
   // portabagagli con valigie
-  const R = mulberry(31), bagMats = [MAT.leather, MAT.trunk, MAT.navy, MAT.velvetDark, MAT.green];
-  for (const [xa, xb] of [[5.6, 9.6], [21.6, 25.6], [37.6, 41.6], [53.6, 57.6]]) {
-    b.box(MAT.brass, (xa + xb) / 2, 3.1, -hw + .55, xb - xa, .06, .06).box(MAT.brass, (xa + xb) / 2, 3.1, -hw + .95, xb - xa, .06, .06);
-    let x = xa + .2; while (x < xb - .6) { const w = .5 + R() * .7; b.box(pick(bagMats), x + w / 2, 3.16, -hw + .75, w, .3 + R() * .3, .7); x += w + .15; }
-  }
+  const R = mulberry(31);
+  for (const [xa, xb] of [[5.6, 9.6], [21.6, 25.6], [37.6, 41.6], [53.6, 57.6]]) luggageRack(b, xa, xb, -hw, R);
   // parete vicina intera con finestrini e due squarci: da lì entrano vento e foglie
   const holes = [20, 44]; let qx = 0;
   for (const cx of wins) {
@@ -280,6 +262,7 @@ function buildPassenger() {
       b.box(MAT.brass, cx, 1.36, hw, 2.8, .1, .14).box(MAT.brass, cx, 3.18, hw, 2.8, .1, .14).box(MAT.brass, a - .05, 1.4, hw, .1, 1.8, .14).box(MAT.brass, c + .05, 1.4, hw, .1, 1.8, .14);
       bx(G, MAT.neon, .05, 1.6, .04, a - .35, 2.3, hw - .04, false); bx(G, MAT.neon, .05, 1.6, .04, c + .35, 2.3, hw - .04, false);
       plane(L, glassMat, 2.6, 1.8, cx, 2.3, hw + .08, 0, Math.PI, false);
+      windowDrapes(b, cx, 1.36, hw, 1, 3.2);
     }
     qx = c;
   }
@@ -287,7 +270,7 @@ function buildPassenger() {
   for (const [xa, xb] of [[0, 17.8], [22.2, 41.8], [46.2, len]]) b.box(MAT.woodDark, (xa + xb) / 2, 0, hw - .04, xb - xa, 1.2, .08).box(MAT.brass, (xa + xb) / 2, 1.2, hw - .06, xb - xa, .06, .1);
   b.box(MAT.woodDark, len / 2, WH - .2, hw - .06, len, .22, .14);
   // applique spente sulla parete vicina (solo lampadine, nessuna luce in più)
-  for (let k = 1; k < 8; k++) { const x = 8 * k; b.box(MAT.brass, x, 2.4, hw - .08, .16, .34, .16); bx(G, MAT.lamp, .18, .24, .16, x, 2.92, hw - .2, false); if (k % 2) pool(L, x, hw - 1.6, 2.6, 0xffa050, .12); }
+  for (let k = 1; k < 8; k++) { const x = 8 * k; wallLamp(b, x, 2.78, hw - .005, Math.PI); if (k % 2) pool(L, x, hw - 1.6, 2.6, 0xffa050, .12); }
   // tetto squarciato: costole intere (una spezzata), lamiere rimaste lungo i lati, centro aperto sul cielo
   for (let k = 1; k < 8; k++) {
     const x = 8 * k;
@@ -309,10 +292,9 @@ function buildPassenger() {
     b.box(MAT.teal, ex + s * .25, 0, -3.55, .5, WH, 4.9).box(MAT.teal, ex + s * .25, 0, 3.55, .5, WH, 4.9).box(MAT.teal, ex + s * .25, 3.2, 0, .5, WH - 3.2, 2.2);
     b.box(MAT.brass, ex - s * .02, 0, -1.15, .1, 3.25, .1).box(MAT.brass, ex - s * .02, 0, 1.15, .1, 3.25, .1).box(MAT.brass, ex - s * .02, 3.2, 0, .1, .1, 2.4);
   }
-  b.box(MAT.wood, .05, 0, 0, .12, 3.15, 2.2).box(MAT.black, .12, 1.6, 0, .04, .7, 1.4);
+  const back = new THREE.Group(); back.position.set(.06, 0, 0); G.add(back); doorLeaf(back, -.55); doorLeaf(back, .55);
   const door = new THREE.Group(); door.position.set(len, 0, 0); G.add(door);
-  const leafA = bx(door, MAT.wood, .12, 3.15, 1.1, 0, 1.58, -.55), leafB = bx(door, MAT.wood, .12, 3.15, 1.1, 0, 1.58, .55);
-  for (const lf of [leafA, leafB]) { bx(lf, MAT.black, .14, .7, .6, 0, .55, 0); bx(lf, MAT.brass, .16, .05, .9, 0, -.2, 0); }
+  const leafA = doorLeaf(door, -.55), leafB = doorLeaf(door, .55);
   const lamp = bx(G, MAT.neonRed, .06, .12, .6, len - .08, 3.5, 0, false);
   const lampL = addLight(L, len - .6, 3.4, 0, 0xff4a3a, 1.4, 5);
   L.exit = { x: len - .9, z: 0, leaves: [leafA, leafB], open: 0, target: 0, lamp, lampL };
@@ -324,17 +306,17 @@ function buildPassenger() {
   // panche di velluto
   const benches = [[6, 9.2, -1], [22, 25.2, -1], [38, 41.2, -1], [54, 57.2, -1], [14, 17.2, 1], [30, 33.2, 1], [46, 49.2, 1]];
   for (const [xa, xb, sd] of benches) {
-    const cx = (xa + xb) / 2, w = xb - xa, zc = sd * (hw - 1.05), zb = sd * (hw - .2);
-    b.box(MAT.woodDark, cx, 0, zc, w, .45, 1.2).box(MAT.cushion, cx, .45, zc, w - .06, .3, 1.25).box(MAT.cushion, cx, .45, zb, w - .06, 1.35, .3).box(MAT.woodDark, cx, 1.8, zb, w + .1, .1, .36);
-    b.box(MAT.brass, cx, .44, zc - sd * .64, w, .04, .04);
-    for (let x = xa + .8; x < xb; x += .8) b.box(MAT.velvetDark, x, .76, zb - sd * .16, .04, 1.0, .02);
+    const zc = sd * (hw - 1.05), zb = sd * (hw - .2);
+    bench(b, xa, xb, zc, zb, sd, R);
     addObs(L, xa, xb, zc - .62, zc + .62, .75, 'seat', true); addObs(L, xa, xb, Math.min(zb - .15, sd * hw), Math.max(zb + .15, sd * hw), 1.85, 'back');
   }
   // casse e bagagli ammucchiati
   const piles = [[2.6, -4.5, [[1.5, .9, 1.1], [1.0, .55, .8]]], [26.6, 4.6, [[2.0, 1.1, 1.2], [1.2, .6, .9]]], [45, -4.7, [[1.6, 1.0, 1.0], [1.0, .5, .8]]], [60.6, 4.5, [[2.2, 1.2, 1.3], [1.3, .5, .9]]]];
   for (const [x, z, parts] of piles) {
-    let y = 0; parts.forEach(([w, h, d], i) => { b.box(i ? pick(bagMats) : MAT.wood, x + (i ? .15 : 0), y, z, w, h, d); if (!i) { b.box(MAT.woodDark, x, 0, z + d / 2 + .01, w + .02, h, .04); b.box(MAT.brass, x, h * .45, z + d / 2 + .03, w * .9, .06, .03); } y += h; });
-    const [w0, , d0] = parts[0]; addObs(L, x - w0 / 2, x + w0 / 2, z - d0 / 2, z + d0 / 2, y, 'crate', true);
+    const [[w0, h0, d0], [w1, h1, d1]] = parts, ry = z < 0 ? 0 : Math.PI;
+    crateBox(b, x, 0, z, w0, h0, d0, ry, R);
+    suitcase(b, x + .15, h0, z, w1, h1 * .8, d1, ry + (R() - .5) * .3, R);
+    addObs(L, x - w0 / 2, x + w0 / 2, z - d0 / 2, z + d0 / 2, h0 + h1 * .8, 'crate', true);
   }
   // detriti
   for (let i = 0; i < 16; i++) { const m = new THREE.Mesh(boxGeo(.3 + R() * .9, .06, .14 + R() * .2), R() < .5 ? MAT.woodDark : MAT.roofMetal); m.position.set(18 + R() * 30, .03, -3 + R() * 6); m.rotation.y = R() * 3; m.castShadow = true; m.receiveShadow = true; G.add(m); }

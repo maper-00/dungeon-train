@@ -36,7 +36,7 @@ function loop(now) {
 /* ================= avvio ================= */
 function boot() {
   try {
-    buildTextures(); buildMaterials(); buildModelMaterials(); buildEnvironment();
+    buildTextures(); buildMaterials(); buildPropMaterials(); buildModelMaterials(); buildEnvironment();
     Rain.init(); Wind.init(); Sparks.init(); Chunks.init(); Dust.init(); Puffs.init(); Storm.init();
     updateView(); resize();
     UI.init();

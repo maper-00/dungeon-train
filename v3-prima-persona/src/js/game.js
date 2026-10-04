@@ -319,6 +319,7 @@ function updatePet(dt) {
   u.legs.forEach((l, i) => l.rotation.x = Math.sin(u.phase + (i % 2 ? Math.PI : 0)) * .5 * Math.min(1, s / 3));
   u.body.rotation.z = Math.sin(T * 2) * .03;
   u.light.intensity = 1.5 + Math.sin(T * 7) * .08;
+  if (u.tick) u.tick(T, dt, s);
 }
 
 /* ---------- nemici ---------- */
@@ -426,6 +427,7 @@ function updateEnemy(e, dt) {
   const m = e.model, spd = Math.hypot(e.vx, e.vz);
   m.position.set(e.x, e.y, e.z); m.rotation.y = e.face;
   if (POSER[e.type]) POSER[e.type](e, u, spd, dt); else poseHumanoid(e, u, spd);
+  if (u.tick) u.tick(T, dt, spd); // animazioni secondarie: orecchie, mascelle, code di nebbia
   const warn = WARN.has(e.state) || (e.type === 'bigliettaio' && e.tickCd < .5);
   e.ringMat.opacity = e.state === 'sleep' || (e.vis !== undefined && e.vis < .5) ? 0 : warn ? .5 + Math.sin(T * 30) * .4 : (def.fly ? .5 : .35);
   e.ring.scale.setScalar(def.ring * (warn ? 1.25 : 1)); e.ring.position.y = (.03 - e.y) / m.scale.y;

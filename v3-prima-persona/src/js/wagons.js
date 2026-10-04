@@ -77,8 +77,7 @@ function bBoxR(b, mat, x, y, z, w, h, d, rx = 0, ry = 0, rz = 0) { b.geo(mat, ne
 // porta d'uscita a due ante con lampada rossa (verde a vagone libero) e cartello del vagone dopo
 function exitDoor(L, n) {
   const len = L.len, G = L.group, door = new THREE.Group(); door.position.set(len, 0, 0); G.add(door);
-  const leafA = bx(door, MAT.wood, .12, 3.15, 1.1, 0, 1.58, -.55), leafB = bx(door, MAT.wood, .12, 3.15, 1.1, 0, 1.58, .55);
-  for (const lf of [leafA, leafB]) { bx(lf, MAT.black, .14, .7, .6, 0, .55, 0); bx(lf, MAT.brass, .16, .05, .9, 0, -.2, 0); }
+  const leafA = doorLeaf(door, -.55), leafB = doorLeaf(door, .55);
   const lamp = bx(G, MAT.neonRed, .06, .12, .6, len - .08, 3.5, 0, false);
   const lampL = addLight(L, len - .6, 3.4, 0, 0xff4a3a, 1.4, 5);
   L.exit = { x: len - .9, z: 0, leaves: [leafA, leafB], open: 0, target: 0, lamp, lampL };
@@ -120,7 +119,7 @@ function wagonShell(n, o) {
     b.box(hwM, ex + s * .25, 0, -3.55, .5, WH, 4.9).box(hwM, ex + s * .25, 0, 3.55, .5, WH, 4.9).box(hwM, ex + s * .25, 3.2, 0, .5, WH - 3.2, 2.2);
     b.box(o.trim, ex - s * .02, 0, -1.15, .1, 3.25, .1).box(o.trim, ex - s * .02, 0, 1.15, .1, 3.25, .1).box(o.trim, ex - s * .02, 3.2, 0, .1, .1, 2.4);
   }
-  b.box(MAT.wood, .05, 0, 0, .12, 3.15, 2.2).box(MAT.black, .12, 1.6, 0, .04, .7, 1.4);
+  { const back = new THREE.Group(); back.position.set(.06, 0, 0); G.add(back); doorLeaf(back, -.55); doorLeaf(back, .55); }
   if (o.roof === 'closed') {
     const ceil = o.ceil || o.wall, rib = o.rib || o.trim;
     for (const sd of [-1, 1]) { b.box(ceil, len / 2, WH, sd * 4.15, len + .2, .2, 4.3); b.box(rib, len / 2, WH, sd * 2.06, len, .8, .12); }
@@ -153,55 +152,56 @@ function wagonFinish(S, o = {}) {
   L.start = { x: 3.0, z: .6 }; L.startYaw = Math.PI / 2;
   return L;
 }
-// lampadina a parete; light: aggiunge una luce vera, altrimenti solo una pozza finta
+// applique a parete (braccio d'ottone e tulipano di vetro); light: aggiunge una luce vera, altrimenti solo una pozza finta
 function sconce(L, b, x, sd, col, light, k = 2.4) {
   const z = sd * 6;
-  b.box(MAT.brass, x, 2.4, z - sd * .08, .16, .34, .16); bx(L.group, MAT.lamp, .18, .24, .16, x, 2.92, z - sd * .2, false);
+  wallLamp(b, x, 2.78, z - sd * .005, sd < 0 ? 0 : Math.PI);
   if (light) addLight(L, x, 2.9, z - sd * .8, col, k, 11, .1);
   pool(L, x, z - sd * 1.6, light ? 3.6 : 2.4, col, light ? .2 : .12);
 }
+// lampadario a otto bracci: rosone, catena, fusto dorato, candele accese e gocce di cristallo
 function chandelier(L, b, x, z, light, col = 0xffc070) {
-  const y = 3.25;
-  b.box(MAT.brass, x, y + .1, z, .04, 4.98 - y, .04);
-  bCylY(b, MAT.gilt, x, y - .3, z, .07, .5, 8);
-  for (let k = 0; k < 8; k++) {
-    const a = k / 8 * TAU, cx = x + Math.cos(a) * .55, cz = z + Math.sin(a) * .55;
-    b.box(MAT.gilt, x + Math.cos(a + Math.PI / 8) * .51, y - .2, z + Math.sin(a + Math.PI / 8) * .51, .44, .05, .05, -(a + Math.PI / 8) + Math.PI / 2);
-    b.box(MAT.gilt, cx, y - .22, cz, .07, .05, .07); b.box(MAT.cream, cx, y - .17, cz, .04, .12, .04); b.box(MAT.lamp, cx, y - .05, cz, .035, .06, .035);
-    b.box(MAT.white, x + Math.cos(a) * .4, y - .42, z + Math.sin(a) * .4, .03, .12, .03);
+  const y = 3.25, k = new Kit(b, x, 0, z);
+  k.lathe(MAT.gilt, [[0, 0], [.2, 0], [.18, -.04], [.06, -.08], [0, -.08]], 0, 4.98, 0, 20);
+  for (let i = 0; i < Math.floor((4.9 - y - .35) / .07); i++) k.put(MAT.gilt, new THREE.TorusGeometry(.022, .006, 4, 8), 0, 4.88 - i * .07, 0, 0, i % 2 ? Math.PI / 2 : 0, 0);
+  k.lathe(MAT.gilt, [[0, -.58], [.04, -.54], [.09, -.42], [.06, -.33], [.13, -.22], [.09, -.12], [.05, .08], [.08, .22], [.04, .32], [0, .34]], 0, y, 0, 18);
+  for (let i = 0; i < 8; i++) {
+    const a = i / 8 * TAU, c = Math.cos(a), s = Math.sin(a), ex = c * .55, ez = s * .55;
+    k.put(MAT.gilt, taperTube([[c * .07, -.2, s * .07], [c * .28, -.36, s * .28], [c * .48, -.34, s * .48], [ex, -.24, ez]], () => .014, 14, 5), 0, y, 0);
+    k.lathe(MAT.gilt, [[0, 0], [.045, .005], [.05, .02], [.02, .025], [0, .025]], ex, y - .245, ez, 10);
+    k.cyl(MAT.wax, .018, .018, .12, ex, y - .22, ez, 8);
+    k.put(MAT.lamp, blob(.016, .035, .016, 8), ex, y - .06, ez);
+    k.put(MAT.glassClear, new THREE.OctahedronGeometry(.028).scale(1, 1.8, 1), c * .38, y - .45, s * .38);
   }
+  k.put(MAT.glassClear, new THREE.OctahedronGeometry(.06).scale(1, 1.8, 1), 0, y - .7, 0);
   glowSprite(L.group, x, y - .1, z, 2.2, col, .32);
   if (light) addLight(L, x, y - .4, z, col, 3.2, 14, .06);
   pool(L, x, z, 4.2, col, light ? .2 : .12);
 }
+// lampada industriale: asta, paralume smaltato, lampadina
 function pendant(L, b, x, z, light, col = 0xffb060, mat = MAT.lamp, top = 4.98) {
-  const y = 3.2;
-  b.box(MAT.steelDark, x, y + .3, z, .03, top - y - .3, .03);
-  bCylY(b, MAT.steelDark, x, y + .12, z, .28, .2, 10, .06);
-  bx(L.group, mat, .16, .1, .16, x, y + .08, z, false);
+  const y = 3.2, k = new Kit(b, x, 0, z);
+  k.cyl(MAT.steelDark, .014, .014, top - y - .3, 0, y + .3, 0, 6);
+  k.lathe(MAT.steelDark, [[0, .02], [.05, .02], [.05, -.04], [0, -.04]], 0, y + .36, 0, 10);
+  k.lathe(MAT.shadeMetal, [[.045, .3], [.07, .27], [.18, .17], [.29, .06], [.31, .03]], 0, y, 0, 22);
+  k.put(mat, new THREE.SphereGeometry(.07, 12, 10), 0, y + .14, 0);
   if (light) addLight(L, x, y - .1, z, col, 2.6, 11, .08);
   pool(L, x, z, light ? 3.4 : 2.4, col, light ? .2 : .12);
 }
-function crate(b, x, y, z, s, mat = MAT.wood) {
-  b.box(mat, x, y, z, s, s, s);
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.box(MAT.woodDark, x + sx * (s / 2 - .04), y, z + sz * (s / 2 - .04), .1, s, .1);
-  b.box(MAT.woodDark, x, y + s - .07, z, s + .02, .08, s + .02).box(MAT.woodDark, x, y, z, s + .02, .08, s + .02);
-}
-function trunkProp(b, x, y, z, rot = 0) {
-  const c = Math.cos(rot), s = Math.sin(rot);
-  b.box(MAT.trunk, x, y, z, 1.0, .5, .66, rot).box(MAT.brass, x, y + .07, z, 1.04, .06, .7, rot).box(MAT.brass, x, y + .39, z, 1.04, .06, .7, rot);
-  b.box(MAT.trunk, x, y + .5, z, 1.0, .2, .66, rot).box(MAT.brass, x, y + .67, z, 1.04, .05, .7, rot);
-  for (const k of [-1, 1]) b.box(MAT.woodDark, x + c * k * .36, y, z - s * k * .36, .08, .7, .7, rot);
-  b.box(MAT.brass, x + s * .34, y + .45, z + c * .34, .14, .16, .06, rot);
-}
+const seedOf = (x, y, z) => mulberry(Math.round(x * 97 + y * 13 + z * 31) + 7);
+function crate(b, x, y, z, s, mat = MAT.wood) { crateBox(b, x, y, z, s, s, s, 0, seedOf(x, y, z), s > .9); }
+function trunkProp(b, x, y, z, rot = 0) { suitcase(b, x, y, z, 1.0, .7, .66, rot, seedOf(x, y, z), 'trunk'); }
+// botte a doghe con i cerchi di ferro
 function barrel(b, x, y, z, r = .38, h = 1.0) {
-  bCylY(b, MAT.woodDark, x, y, z, r, h, 12, r);
-  for (const f of [.15, .8]) bCylY(b, MAT.steelDark, x, y + h * f, z, r + .02, .06, 12);
-  bCylY(b, MAT.wood, x, y + h, z, r - .03, .02, 12);
+  const k = new Kit(b, x, y, z), rr = f => r * (.86 + .14 * Math.sin(f * Math.PI));
+  k.lathe(MAT.oak, [[0, 0], [rr(0), 0], [rr(.15), h * .15], [rr(.5), h * .5], [rr(.85), h * .85], [rr(1), h], [r * .8, h - .01], [0, h - .015]], 0, 0, 0, 18);
+  for (const f of [.1, .3, .7, .9]) k.lathe(MAT.iron, [[rr(f) - .002, h * f - .025], [rr(f) + .01, h * f - .02], [rr(f) + .01, h * f + .02], [rr(f) - .002, h * f + .025]], 0, 0, 0, 18);
+  k.cyl(MAT.oak, .03, .03, .02, r * .3, h - .01, 0, 8);
 }
-// palma in vaso: tronco a segmenti e foglie piegate
+// palma in vaso di terracotta: tronco a segmenti e foglie piegate
 function palm(L, b, x, z, s, R, y0 = 0) {
-  bCylY(b, MAT.trunk, x, y0, z, .4 * s, .55 * s, 10, .32 * s); bCylY(b, MAT.soil, x, y0 + .55 * s, z, .3 * s, .02, 10);
+  new Kit(b, x, y0, z).lathe(MAT.terracotta, [[0, 0], [.28 * s, 0], [.34 * s, .08 * s], [.4 * s, .48 * s], [.45 * s, .52 * s], [.45 * s, .58 * s], [.38 * s, .58 * s], [.36 * s, .54 * s], [0, .54 * s]], 0, 0, 0, 18);
+  bCylY(b, MAT.soil, x, y0 + .54 * s, z, .36 * s, .02, 14);
   let y = y0 + .55 * s, tx = x, tz = z;
   for (let i = 0; i < 5; i++) { const h = .45 * s; bCylY(b, MAT.woodDark, tx, y, tz, (.1 - i * .012) * s, h, 6, (.085 - i * .012) * s); y += h; tx += (R() - .5) * .06; tz += (R() - .5) * .06; }
   for (let k = 0; k < 8; k++) {
@@ -220,9 +220,15 @@ function fern(b, x, y, z, s, R) {
     b.geo(k % 2 ? MAT.leafDark : MAT.leafGreen, new THREE.PlaneGeometry(l, .16 * s).rotateX(-Math.PI / 2).translate(l / 2, 0, 0).rotateZ(ph).rotateY(-a).translate(x, y, z));
   }
 }
+// sedia da ristorante: gambe tornite, cuscino di velluto, schienale con la traversa curva
 function chair(b, x, z, ry, mat = MAT.velvet) {
-  const c = Math.cos(ry), s = Math.sin(ry);
-  b.box(MAT.woodDark, x, 0, z, .5, .45, .5, ry).box(mat, x, .45, z, .52, .1, .52, ry).box(mat, x - s * .22, .5, z - c * .22, .5, .62, .08, ry);
+  const k = new Kit(b, x, 0, z, ry + Math.PI);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.lathe(MAT.varnishDark, [[.025, 0], [.03, .05], [.02, .2], [.03, .3], [.025, .42], [0, .42]], sx * .2, 0, sz * .2, 8);
+  k.box(MAT.varnishDark, .5, .05, .5, 0, .4, 0, .015);
+  k.box(mat === MAT.velvet ? MAT.tuftRed : mat, .48, .08, .48, 0, .45, .01, .035);
+  for (const sx of [-1, 1]) k.box(MAT.varnishDark, .045, .7, .045, sx * .2, .42, .22, .012, .08, 0, 0);
+  k.box(MAT.varnish, .5, .08, .06, 0, 1.05, .3, .025, .08, 0, 0);
+  k.box(mat === MAT.velvet ? MAT.tuftRed : mat, .38, .36, .05, 0, .6, .24, .025, .08, 0, 0);
 }
 
 /* ---------- 2: carrozza ristorante ---------- */
@@ -245,9 +251,9 @@ function buildDining(n) {
   const bx0 = len - 10, bx1 = len - 3.6;
   b.box(MAT.woodDark, (bx0 + bx1) / 2, 0, -4.7, bx1 - bx0, 1.05, .9).box(MAT.marble, (bx0 + bx1) / 2, 1.05, -4.7, bx1 - bx0 + .2, .07, 1.05).box(MAT.brass, (bx0 + bx1) / 2, .2, -4.2, bx1 - bx0, .05, .05);
   for (let x = bx0 + .3; x < bx1; x += .7) b.box(MAT.wood, x, .1, -4.24, .5, .8, .02);
-  for (const y of [1.6, 2.2, 2.8]) { b.box(MAT.woodDark, (bx0 + bx1) / 2, y, -5.8, bx1 - bx0, .05, .35); for (let x = bx0 + .2; x < bx1 - .1; x += .22 + R() * .1) b.box(R() < .5 ? MAT.bottleG : MAT.bottleA, x, y + .05, -5.78, .08, .26 + R() * .1, .08); }
+  for (const y of [1.6, 2.2, 2.8]) { b.box(MAT.woodDark, (bx0 + bx1) / 2, y, -5.8, bx1 - bx0, .05, .35); for (let x = bx0 + .2; x < bx1 - .1; x += .22 + R() * .1) bottle(b, x, y + .05, -5.78, .26 + R() * .1, R() < .5 ? MAT.bottleG : MAT.bottleA); }
   plane(L, MAT.clere, bx1 - bx0 - .4, .5, (bx0 + bx1) / 2, 3.35, -5.94, 0, 0, false);
-  for (let x = bx0 + .6; x < bx1; x += 1.4) { bCylY(b, MAT.brass, x, 0, -3.7, .05, .75, 6); bCylY(b, MAT.velvet, x, .75, -3.7, .22, .1, 10); addObs(L, x - .25, x + .25, -3.95, -3.45, .85, 'seat', true); }
+  for (let x = bx0 + .6; x < bx1; x += 1.4) { stool(b, x, -3.7); addObs(L, x - .25, x + .25, -3.95, -3.45, .85, 'seat', true); }
   addObs(L, bx0, bx1, -5.9, -4.2, 1.12, 'crate', true);
   addLight(L, (bx0 + bx1) / 2, 2.6, -4.4, 0xffa850, 1.6, 7, .12);
   // leggio del maître all'ingresso e piante
@@ -266,7 +272,7 @@ function buildBaggage(n) {
   L.fx.swing = [];
   for (const [i, x] of [6, 17, 28, 39, 50].entries()) {
     const pv = new THREE.Group(); pv.position.set(x, 4.9, i % 2 ? .8 : -.8); G.add(pv);
-    bx(pv, MAT.steelDark, .03, 1.6, .03, 0, -.8, 0, false); bx(pv, MAT.brass, .26, .05, .26, 0, -1.62, 0); bx(pv, MAT.lamp, .16, .26, .16, 0, -1.8, 0, false); bx(pv, MAT.brass, .22, .05, .22, 0, -1.96, 0);
+    hangingLantern(pv);
     glowSprite(pv, 0, -1.8, 0, 1.6, 0xffb060, .4);
     if (i % 2 === 0) { const l = new THREE.PointLight(lin(0xffb060), 2.6, 12, 2); l.position.set(0, -1.9, 0); pv.add(l); L.lights.push({ l, base: 2.6, flick: .12, ph: R() * 10 }); }
     L.fx.swing.push({ pv, ph: R() * 6, amp: .12 + R() * .06 });
@@ -286,9 +292,8 @@ function buildBaggage(n) {
     [5, 5.1, [1.3]], [8.5, 5.2, ['b']], [12, 5.1, [1.2, .9]], [17, 5.2, ['t']], [21, 5.1, [1.4, 1.0]], [26, 5.2, ['t', 't']], [32, 5.1, [1.2]], [34.5, 5.2, ['b']], [38, 5.1, [1.3, .8]], [43, 5.2, ['t']], [48, 5.1, [1.2, 1.2, .7]], [53, 5.2, ['b']], [57, 5.1, [1.3]],
     [18, 1.2, [1.2, .8]], [30, -1.4, [1.4]], [30, -.2, ['t']], [42, 1.0, [1.2, 1.0]], [50, -1.3, ['b']]]) stack(x, z, parts);
   // valigie sparse e sacchi della posta
-  const bags = [MAT.leather, MAT.navy, MAT.velvetDark, MAT.green, MAT.trunk];
-  for (let i = 0; i < 22; i++) { const x = 4 + R() * (len - 8), z = (R() < .5 ? -1 : 1) * (3.6 + R() * .8); if (insideAny(L, x, z, .3)) continue; const w = .5 + R() * .4; b.box(pick(bags), x, 0, z, w, .25 + R() * .15, .35 + R() * .2, R() * 3); }
-  for (let i = 0; i < 8; i++) { const x = 6 + R() * (len - 12), z = (R() < .5 ? -1 : 1) * (4.2 + R() * .5); if (insideAny(L, x, z, .3)) continue; b.box(MAT.cream, x, 0, z, .7, .55, .5, R() * 3).box(MAT.cream, x, .55, z, .4, .2, .3, R() * 3); }
+  for (let i = 0; i < 22; i++) { const x = 4 + R() * (len - 8), z = (R() < .5 ? -1 : 1) * (3.6 + R() * .8); if (insideAny(L, x, z, .3)) continue; const w = .5 + R() * .4; suitcase(b, x, 0, z, w, .25 + R() * .15, .35 + R() * .2, R() * 3, R); }
+  for (let i = 0; i < 8; i++) { const x = 6 + R() * (len - 12), z = (R() < .5 ? -1 : 1) * (4.2 + R() * .5); if (insideAny(L, x, z, .3)) continue; sack(b, x, z, R); }
   // rete del carico appesa alla parete vicina
   for (let x = 14; x <= 18; x += .4) b.box(MAT.cream, x, 1.6, 5.9, .03, 1.8, .03);
   for (let y = 1.6; y <= 3.4; y += .4) b.box(MAT.cream, 16, y, 5.9, 4, .03, .03);
@@ -304,12 +309,11 @@ function buildSleeper(n) {
     moonK: .75, hemiK: .3, fog: [0x080a14, .026], dust: 0xb8c0ff });
   const { L, b, G, len } = S, R = mulberry(404);
   // scompartimenti con cuccette a castello lungo la parete di fondo; i tramezzi non fermano i fantasmi
-  const curtains = [MAT.velvet, MAT.velvetDark, MAT.navy];
   for (let x = 4; x <= 60; x += 8) { b.box(MAT.woodDark, x, 0, -4.2, .2, 4.2, 3.6).box(MAT.brass, x, 0, -2.42, .26, 4.2, .06); addObs(L, x - .1, x + .1, -6, -2.4, 4.2, 'part'); }
   for (let cx = 8; cx < 60; cx += 8) {
     for (const ox of [-2, 2]) {
       const x = cx + ox;
-      for (const y of [.55, 2.05]) { b.box(MAT.woodDark, x, y - .1, -4.6, 3.4, .14, 2.2).box(MAT.cream, x, y + .04, -4.6, 3.3, .2, 2.0).box(MAT.white, x - 1.3, y + .24, -4.6, .5, .14, 1.2).box(pick([MAT.navy, MAT.velvet, MAT.green]), x + .35, y + .24, -4.6, 2.5, .08, 2.02); }
+      for (const y of [.55, 2.05]) sleeperBunk(b, x, y, R);
       b.box(MAT.woodDark, x - 1.72, 0, -3.5, .1, 2.9, .1).box(MAT.woodDark, x + 1.72, 0, -3.5, .1, 2.9, .1);
       for (let y = .9; y < 2.5; y += .4) b.box(MAT.brass, x + 1.72, y, -3.44, .06, .04, .3);
       bx(G, MAT.purpleLamp, .12, .08, .08, x, 3.2, -5.85, false);
@@ -317,7 +321,7 @@ function buildSleeper(n) {
     }
     // tende: due drappi ai lati dello scompartimento, il centro resta aperto
     b.box(MAT.brass, cx, 3.55, -2.5, 7.6, .05, .05);
-    for (const s of [-1, 1]) for (let i = 0; i < 4; i++) b.box(pick(curtains), cx + s * (3.4 - i * .32), .3, -2.5 + (i % 2) * .08, .34, 3.2, .06, (i % 2 ? .25 : -.25));
+    for (const s of [-1, 1]) curtain(new Kit(b), cx + s * 2.95, .3, -2.5, 1.1, 3.22, .35, s > 0 ? MAT.velvetCurtain : MAT.velvetNavy);
     pool(L, cx, -4, 3.2, 0x9a6aff, .12);
   }
   for (const x of [12, 36]) addLight(L, x, 3.0, -4.2, 0x9a7aff, 1.6, 9, .25);
@@ -328,7 +332,7 @@ function buildSleeper(n) {
   b.box(MAT.brass, 33, 0, 4.4, .9, .9, .5).box(MAT.wood, 33, .9, 4.4, 1.0, .05, .6).box(MAT.white, 32.8, .95, 4.3, .2, .14, .2).box(MAT.cream, 33.2, .95, 4.5, .1, .1, .1);
   addObs(L, 32.5, 33.5, 4.1, 4.7, 1.0, 'crate', true);
   // valigie dimenticate nel corridoio
-  for (let i = 0; i < 9; i++) { const x = 5 + R() * (len - 10), z = 4.6 + R() * .8; if (insideAny(L, x, z, .2)) continue; b.box(pick([MAT.leather, MAT.trunk, MAT.navy]), x, 0, z, .6, .35, .4, R() * 3); }
+  for (let i = 0; i < 9; i++) { const x = 5 + R() * (len - 10), z = 4.6 + R() * .8; if (insideAny(L, x, z, .2)) continue; suitcase(b, x, 0, z, .6, .3, .4, R() * 3, R); }
   return wagonFinish(S, { entryCol: 0x9ab4ff });
 }
 
@@ -365,7 +369,7 @@ function buildGreenhouse(n) {
   }
   // vialetto con panchine in ferro e fontanella
   for (const [x, sd] of [[16, -1], [31, 1], [46, -1]]) { b.box(MAT.ironFrame, x, 0, sd * 2.25, 1.6, .45, .1).box(MAT.wood, x, .45, sd * 2.1, 1.6, .06, .4); addObs(L, x - .8, x + .8, sd * 2.1 - .22, sd * 2.1 + .22, .5, 'seat', true); }
-  bCylY(b, MAT.marble, 31, 0, 0, .9, .45, 14); bCylY(b, MAT.stoneFloor, 31, .45, 0, .75, .02, 14); bCylY(b, MAT.marble, 31, .45, 0, .14, .7, 8); bCylY(b, MAT.marble, 31, 1.15, 0, .35, .1, 10);
+  fountain(b, 31, 0);
   plane(L, MAT.glass, 1.4, 1.4, 31, .44, 0, -Math.PI / 2); addObs(L, 30.1, 31.9, -.9, .9, .5, 'crate', true);
   return wagonFinish(S, { entryCol: 0x9affc8 });
 }
@@ -380,13 +384,13 @@ function buildCoal(n) {
   // costole esterne delle sponde
   for (let x = 2; x < len; x += 3) for (const sd of [-1, 1]) b.box(MAT.steelDark, x, 0, sd * 6.6, .2, 2.3, .2);
   // mucchi di carbone
-  const heap = (x, z, r, h) => { b.geo(MAT.coal, new THREE.ConeGeometry(r, h, 7).rotateY(R() * 3).translate(x, h / 2, z)); addObs(L, x - r * .55, x + r * .55, z - r * .55, z + r * .55, h * .6, 'crate', true); };
+  const heap = (x, z, r, h) => { coalHeap(b, x, z, r, h, R); addObs(L, x - r * .55, x + r * .55, z - r * .55, z + r * .55, h * .6, 'crate', true); };
   for (const [x, z, r, h] of [[5, -4.6, 1.6, 1.4], [10, 4.5, 1.8, 1.6], [15.5, -4.4, 2.0, 1.8], [22, 4.4, 1.6, 1.2], [27, -4.6, 1.8, 1.5], [33, 4.6, 2.0, 1.8], [38.5, -4.4, 1.6, 1.3], [44, 4.4, 1.8, 1.6], [49, -4.6, 1.9, 1.7], [53.5, 4.5, 1.4, 1.1], [19, -.6, 1.3, 1.0], [36, .8, 1.4, 1.1]]) heap(x, z, r, h);
-  for (let i = 0; i < 60; i++) { const x = 3 + R() * (len - 6), z = (R() - .5) * 10; b.box(MAT.coal, x, 0, z, .12 + R() * .2, .08 + R() * .1, .12 + R() * .2, R() * 3); }
+  coalChunks(b, 3, len - 3, 10, 70, R);
   // bracieri accesi: luce che tremola e braci che salgono
   L.fx.braziers = [];
   for (const [x, z] of [[8, 0], [24.5, -1.5], [41, 1.5], [52, -.5]]) {
-    bCylY(b, MAT.steelDark, x, 0, z, .42, .9, 12, .46); bCylY(b, MAT.soot2, x, .9, z, .4, .02, 12);
+    brazier(b, x, z);
     for (let i = 0; i < 5; i++) { const m = bx(G, MAT.furnace, .14 + R() * .1, .14 + R() * .2, .14 + R() * .1, x + (R() - .5) * .4, .98, z + (R() - .5) * .4, false); m.rotation.set(R(), R(), R()); }
     glowSprite(G, x, 1.25, z, 2.4, 0xff8a30, .55);
     addLight(L, x, 1.7, z, 0xff8a40, 2.6, 10, .35); pool(L, x, z, 4, 0xff7a30, .22);
@@ -423,22 +427,15 @@ function buildVault(n) {
   }
   addLight(L, 26, 3.4, -4.6, 0xff3020, 1.4, 10, .6);
   // casseforti, lingotti, sacchi di monete, armadietti
-  const safe = (x, z, s, ry) => {
-    b.box(MAT.plateDark, x, 0, z, s, s * 1.2, s, ry);
-    const fx = x + Math.sin(ry) * (s / 2 + .02), fz = z + Math.cos(ry) * (s / 2 + .02);
-    b.box(MAT.steelDark, fx, s * .15, fz, s * .8, s * .9, .04, ry); bCylY(b, MAT.brass, fx + Math.sin(ry) * .03, s * .62, fz + Math.cos(ry) * .03, .1, .04, 12);
-    b.box(MAT.brass, fx + Math.cos(ry) * s * .25, s * .45, fz - Math.sin(ry) * s * .25, .06, .3, .06, ry);
-    addObs(L, x - s / 2, x + s / 2, z - s / 2, z + s / 2, s * 1.2, 'crate', true);
-  };
+  const safe = (x, z, s, ry) => { safeBox(b, x, z, s, ry); addObs(L, x - s / 2, x + s / 2, z - s / 2, z + s / 2, s * 1.2, 'crate', true); };
   for (const [x, z, s] of [[4, -5.1, 1.2], [11, -5.1, 1.4], [17, 5.1, 1.2], [24, -5.1, 1.0], [35, 5.1, 1.4], [41, -5.1, 1.2], [48, 5.1, 1.2]]) safe(x, z, s, z < 0 ? 0 : Math.PI);
   const gold = (x, z) => {
-    b.box(MAT.woodDark, x, 0, z, 1.3, .15, 1.0);
-    for (let l = 0; l < 3; l++) for (let i = 0; i < 4 - l; i++) for (let k = 0; k < 2; k++) b.box(MAT.gold, x - .45 + l * .15 + i * .3, .15 + l * .12, z - .2 + k * .4, .26, .12, .34);
+    ingotPile(b, x, z);
     glowSprite(G, x, .5, z, 1.8, 0xffc060, .25);
     addObs(L, x - .65, x + .65, z - .5, z + .5, .55, 'crate', true);
   };
   for (const [x, z] of [[8, 4.6], [21, -1.6], [29, 4.6], [30.5, -4.6], [44, 1.4]]) gold(x, z);
-  for (let i = 0; i < 12; i++) { const x = 4 + R() * (len - 8), z = (R() < .5 ? -1 : 1) * (3.4 + R() * 1.2); if (insideAny(L, x, z, .35)) continue; b.box(MAT.cream, x, 0, z, .5, .5, .45, R() * 3).box(MAT.leather, x, .5, z, .2, .08, .2); }
+  for (let i = 0; i < 12; i++) { const x = 4 + R() * (len - 8), z = (R() < .5 ? -1 : 1) * (3.4 + R() * 1.2); if (insideAny(L, x, z, .35)) continue; coinSack(b, x, z, R); }
   for (let x = 51 - 4.8; x < 51; x += .6) { b.box(MAT.plateGreen, x, 0, -5.6, .56, 2.4, .6); b.box(MAT.black, x, 1.9, -5.29, .4, .2, .02); }
   addObs(L, 51 - 5.1, 51, -5.9, -5.3, 2.4);
   // la porta del caveau sulla parete vicina
@@ -467,7 +464,7 @@ function buildWorkshop(n) {
     for (let x = 2; x < len; x += 4) bCylX(b, MAT.brass, x, y, sd * 5.6, r + .04, .1, 10);
   }
   bCylX(b, MAT.copper, len / 2, 4.55, -1.4, .22, len, 12); bCylX(b, MAT.steelDark, len / 2, 4.6, 1.2, .14, len, 10);
-  for (const [x, sd] of [[7, -1], [19, 1], [33, -1], [45, 1], [55, -1]]) { bCylZ(b, MAT.red, x, 2.55, sd * 5.32, .2, .04, 14); bBoxR(b, MAT.red, x, 2.55, sd * 5.32, .4, .04, .04, 0, 0, .8); bBoxR(b, MAT.red, x, 2.55, sd * 5.32, .4, .04, .04, 0, 0, -.8); }
+  for (const [x, sd] of [[7, -1], [19, 1], [33, -1], [45, 1], [55, -1]]) handwheel(b, x, 2.55, sd * 5.36, .2, sd);
   // manometri
   for (const x of [5, 15, 25, 35, 45, 55]) { bCylZ(b, MAT.brass, x, 1.9, -5.86, .2, .06, 14); b.geo(MAT.gauge, cylGeo(.16, .02, 14).rotateX(Math.PI / 2).translate(x, 1.9, -5.82)); bBoxR(b, MAT.red, x + .04, 1.92, -5.8, .14, .015, .01, 0, 0, .7); }
   // ingranaggi che girano sulla parete di fondo
@@ -489,7 +486,7 @@ function buildWorkshop(n) {
   b.box(MAT.steelDark, fx0 + 2.6, 0, fz0 - .3, .5, .55, .4).box(MAT.steelDark, fx0 + 2.6, .55, fz0 - .3, .9, .25, .35).box(MAT.steelDark, fx0 + 3.05, .65, fz0 - .3, .3, .1, .2); addObs(L, fx0 + 2.15, fx0 + 3.1, fz0 - .55, fz0 - .05, .8, 'crate', true);
   // banchi da lavoro con attrezzi
   for (const [x, z] of [[26, 4.9], [36, 4.9], [50, -4.9], [6, -4.9]]) {
-    b.box(MAT.woodDark, x, .9, z, 2.6, .12, .9); for (const s of [-1, 1]) b.box(MAT.steelDark, x + s * 1.2, 0, z, .1, .9, .8);
+    new Kit(b).box(MAT.oak, 2.6, .12, .9, x, .9, z, .02); for (const s of [-1, 1]) new Kit(b).box(MAT.iron, .1, .9, .8, x + s * 1.2, 0, z, .02);
     for (let i = 0; i < 4; i++) b.box(pick([MAT.steel, MAT.brass, MAT.red, MAT.steelDark]), x - .9 + i * .55, 1.02, z + (R() - .5) * .4, .12 + R() * .3, .06 + R() * .12, .1 + R() * .2, R() * 3);
     addObs(L, x - 1.3, x + 1.3, z - .45, z + .45, 1.02, 'crate', true);
   }
@@ -514,25 +511,22 @@ function buildLounge(n) {
   TEX.rug.repeat.set(1, 1);
   // pianoforte a coda
   const px = 22, pz = -3.8;
-  b.box(MAT.piano, px, .7, pz, 2.4, .35, 1.5).box(MAT.piano, px + .9, .7, pz - .1, .9, .35, 1.1);
-  bBoxR(b, MAT.piano, px + .2, 1.45, pz - .3, 2.0, .04, 1.3, -.6, 0, 0);
-  b.box(MAT.keys, px - 1.25, .95, pz, .3, .06, 1.3); for (let i = 0; i < 12; i++) b.box(MAT.black, px - 1.18, 1.0, pz - .55 + i * .1, .14, .04, .04);
-  for (const [x, z] of [[px - .9, pz - .6], [px - .9, pz + .6], [px + 1.1, pz]]) b.box(MAT.piano, x, 0, z, .12, .7, .12);
-  b.box(MAT.velvet, px - 1.9, 0, pz, .5, .5, 1.0); addObs(L, px - 1.3, px + 1.35, pz - .75, pz + .75, 1.05, 'crate', true);
+  grandPiano(b, px, pz);
+  addObs(L, px - 1.3, px + 1.35, pz - .75, pz + .75, 1.05, 'crate', true);
   // poltrone attorno a tavolini con lampade
-  const lampTable = (x, z) => { bCylY(b, MAT.woodDark, x, 0, z, .08, .65, 8); bCylY(b, MAT.gilt, x, .65, z, .45, .05, 14); bCylY(b, MAT.gilt, x, .7, z, .03, .4, 6); bCylY(b, MAT.cream, x, 1.05, z, .22, .22, 10, .12); bx(G, MAT.lamp, .1, .08, .1, x, 1.1, z, false); pool(L, x, z, 2.2, 0xffc070, .14); addObs(L, x - .45, x + .45, z - .45, z + .45, .7, 'table', true); };
+  const lampTable = (x, z) => { lampTableProp(b, x, z); bx(G, MAT.bulb, .08, .08, .08, x, 1.0, z, false); pool(L, x, z, 2.2, 0xffc070, .14); addObs(L, x - .45, x + .45, z - .45, z + .45, .7, 'table', true); };
   for (const [x, z] of [[8, 3.8], [16, -3.6], [28, 3.8], [36, -3.6], [44, 3.8], [56, -3.6]]) {
     lampTable(x, z);
-    for (const s of [-1, 1]) { const cx = x + s * 1.2; b.box(MAT.velvet, cx, 0, z, .8, .45, .8).box(MAT.velvet, cx + s * .32, .45, z, .16, .6, .8).box(MAT.velvetDark, cx, .45, z - .36, .8, .25, .1).box(MAT.velvetDark, cx, .45, z + .36, .8, .25, .1); addObs(L, cx - .4, cx + .4, z - .4, z + .4, .55, 'seat', true); }
+    for (const s of [-1, 1]) { const cx = x + s * 1.2; armchair(b, cx, z, -s * Math.PI / 2); addObs(L, cx - .4, cx + .4, z - .4, z + .4, .55, 'seat', true); }
   }
   // divani lungo le pareti e piante
-  for (const [x, sd] of [[24, 1], [40, 1], [48, -1]]) { b.box(MAT.velvetDark, x, 0, sd * 5.3, 2.6, .45, .9).box(MAT.velvetDark, x, .45, sd * 5.65, 2.6, .7, .2); addObs(L, x - 1.3, x + 1.3, sd * 4.85, sd * 5.75, .55, 'seat', true); }
+  for (const [x, sd] of [[24, 1], [40, 1], [48, -1]]) { sofa(b, x, sd * 5.3, 2.6, sd); addObs(L, x - 1.3, x + 1.3, sd * 4.85, sd * 5.75, .55, 'seat', true); }
   for (const [x, z] of [[3, -5], [3, 5], [61, -5], [61, 5], [32, -5.1]]) { palm(L, b, x, z, .95, R); addObs(L, x - .4, x + .4, z - .4, z + .4, 1.2); }
   // camino elettrico con specchio e il ritratto del capotreno
   const fx = 44, fz = -5.75;
   b.box(MAT.marble, fx, 0, fz, 2.4, 1.3, .5).box(MAT.marble, fx, 1.3, fz + .05, 2.7, .12, .7); bx(G, MAT.furnace, 1.2, .5, .06, fx, .45, fz + .26, false);
   glowSprite(G, fx, .7, fz + .5, 2, 0xff8a40, .45); pool(L, fx, fz + 1.4, 2.6, 0xff8a40, .2); addLight(L, fx, .9, fz + 1, 0xff9a50, 1.2, 6, .3);
-  b.box(MAT.gilt, fx, 1.6, fz + .2, 1.8, 2.0, .06).box(MAT.navy, fx, 1.75, fz + .25, 1.5, 1.7, .03).box(MAT.bone, fx, 2.4, fz + .27, .4, .4, .02).box(MAT.coat, fx, 1.85, fz + .27, .9, .55, .02).box(MAT.brass, fx, 2.66, fz + .27, .45, .12, .02);
+  { const k = new Kit(b, fx, 0, fz + .25); for (const [w, h, px, py] of [[1.5, .14, 0, 1.55], [1.5, .14, 0, 3.4], [.14, 1.71, -.68, 1.69], [.14, 1.71, .68, 1.69]]) k.box(MAT.gilt, w, h, .1, px, py, 0, .04); for (const sx of [-1, 1]) for (const y of [1.62, 3.47]) k.put(MAT.gilt, sph(.07, 12, 8), sx * .68, y, .05); k.put(MAT.portrait, new THREE.PlaneGeometry(1.22, 1.6), 0, 2.5, .0); }
   addObs(L, fx - 1.35, fx + 1.35, -6, -5.2, 1.4);
   // carrello del bar
   b.box(MAT.gilt, 6, .2, -4.4, 1.0, .04, .6).box(MAT.gilt, 6, .8, -4.4, 1.0, .04, .6); for (let i = 0; i < 4; i++) b.box(i % 2 ? MAT.bottleA : MAT.bottleG, 5.65 + i * .23, .84, -4.4, .08, .28, .08); addObs(L, 5.5, 6.5, -4.7, -4.1, .9);
@@ -548,7 +542,7 @@ function buildLoco(n) {
   const { L, b, G, len } = S, R = mulberry(1010);
   L.fx.embers = true; L.fx.stack = true;
   // tender: carbone lungo le sponde
-  for (const [x, z, r, h] of [[5, -4.6, 1.8, 1.5], [11, 4.6, 1.6, 1.3], [17, -4.5, 1.9, 1.6], [23, 4.5, 1.7, 1.4]]) { b.geo(MAT.coal, new THREE.ConeGeometry(r, h, 7).rotateY(R() * 3).translate(x, h / 2, z)); addObs(L, x - r * .55, x + r * .55, z - r * .55, z + r * .55, h * .6, 'crate', true); }
+  for (const [x, z, r, h] of [[5, -4.6, 1.8, 1.5], [11, 4.6, 1.6, 1.3], [17, -4.5, 1.9, 1.6], [23, 4.5, 1.7, 1.4]]) { coalHeap(b, x, z, r, h, R); addObs(L, x - r * .55, x + r * .55, z - r * .55, z + r * .55, h * .6, 'crate', true); }
   // cabina: tetto, colonne e finestrini laterali sopra le sponde
   const cx0 = 30;
   b.box(MAT.plateDark, (cx0 + len) / 2, 4.2, 0, len - cx0 + .4, .2, 13).box(MAT.brass, (cx0 + len) / 2, 4.1, 0, len - cx0, .08, 12.6);

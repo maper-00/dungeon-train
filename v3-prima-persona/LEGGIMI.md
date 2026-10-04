@@ -5,9 +5,11 @@ La partita vista con gli occhi del personaggio: cabina letto, scelta della class
 - Pagina condivisa (chiunque abbia il link): https://claude.ai/artifact/SuMEqPePmXT2YwKD6JkWJd, con i dieci vagoni e la difficoltà ridotta. Le versioni precedenti restano nella cronologia della pagina.
 - `dungeon-train-fps.html`: la pagina pronta da aprire (three.js 0.147 da jsdelivr).
 - `src/`: sorgenti. `python3 build.py dungeon-train-fps.html` ricostruisce la pagina; con `local` come secondo argomento crea una versione di prova che usa una copia locale di three.js in `../three/package/` ed espone `window.DBG` (con `DBG.tick(n)` per far avanzare il gioco di n fotogrammi nei test automatici).
-- Ordine dei file: head.html, poi js/core.js, render.js, models.js, mobs.js, levels.js, wagons.js, game.js, view.js, ui.js, main.js.
-  - `models.js`: classi, armi (`WT`), creature (`MOBS`), modelli delle armi e del giocatore.
+- Ordine dei file: head.html, poi js/core.js, render.js, shapes.js, models.js, mobs.js, props.js, levels.js, wagons.js, game.js, view.js, ui.js, main.js.
+  - `shapes.js`: forme morbide (`rbox`, `lathe`, `taperTube`, `blob`), texture realistiche disegnate in codice (legno venato, pelle, velluto capitonné, ottone spazzolato, tappeto persiano, etichette di viaggio, libri, il ritratto del capotreno), materiali, `Kit` per comporre gli oggetti, `rim` (luce di contorno dei personaggi) e `bake` (unisce i pezzi fermi dei modelli per avere poche draw call).
+  - `models.js`: classi, armi (`WT`), creature (`MOBS`), modelli delle armi, del giocatore, di ratti, scheletri, Bigliettaio e Bullone.
   - `mobs.js`: modelli, comportamento (`AI`) e pose (`POSER`) delle creature nuove.
+  - `props.js`: oggetti dei vagoni (valigie, casse, panche Pullman, tavoli, lampade, tende, letti, libreria, cassaforti, pianoforte, divani, botti, carbone...).
   - `levels.js`: cabina letto e Vagone 1. `wagons.js`: tabella dei dieci vagoni (`WAGONS`: ondate, dialoghi, bottega) e costruzione dei vagoni 2-10.
   - `view.js`: sguardo, telecamera, braccia e arma in primo piano, mira.
 
@@ -61,7 +63,10 @@ Tredici tipi: spada, sciabola (critici frequenti), ascia, pugnale, lancia (affon
 - Pareti con texture in coordinate del mondo (pannelli di legno, carta da parati damascata, lamiere rivettate, mattoni), pavimenti a scacchi, parquet, lamiera striata, passatoie.
 - Temporale: lampi che illuminano la scena anche dai finestrini, fulmini all'orizzonte e tuono in ritardo; luna visibile dai tetti aperti.
 - Atmosfera per vagone: nebbia, colore della polvere, lucciole, braci, vapore, fumo della locomotiva.
-- Armi con lame sagomate e rune luminose per le rarità, mani con dita, leggera aberrazione cromatica ai bordi.
+- Armi con lame sagomate e rune luminose per le rarità, leggera aberrazione cromatica ai bordi.
+- Personaggi strambi ma belli, fatti di forme morbide con una luce di contorno che li stacca dal buio, e con piccole animazioni proprie (`userData.tick`): il ratto ha orecchie enormi che si muovono, occhi spaiati con il monocolo, il cartellino del bagaglio e il coltello tra i denti; gli scheletri hanno il cranio grosso, gli occhi di brace e la mascella che batte (il passeggero in panciotto e bombetta, l'arciere col cappuccio e un occhio solo, il cuoco col cappello altissimo, il fuochista con gli occhialoni, la guardia in armatura, il Capotreno in redingote con i baffi enormi); il Bigliettaio ha la coda di nebbia che ondeggia e i biglietti che gli girano attorno; il fantasma va in giro in camicia da notte col cuscino; i ragni hanno un'orchidea sulla schiena; l'automa è una teiera di rame; il baule mimetico ha un solo occhio giallo e le zampe di poltrona; Bullone è una caldaia d'ottone su zampette da insetto. Anche le tre classi nelle schede sono nuove.
+- Mani in prima persona arrotondate, con le dita chiuse sull'impugnatura dell'arma; manica, bracciale e guanto cambiano con la classe.
+- Oggetti dei vagoni realistici: legno venato, pelle, velluto capitonné e ottone con texture disegnate in codice e coordinate in metri (la grana non si stira). Valigie con cinghie, angoli e etichette di viaggio, casse di assi con le scritte a spruzzo, panche Pullman, tavoli con centrino, tazza e lampada verde, tende di velluto ai finestrini, lampadari a candele, cassaforti con la manopola, lingotti, pianoforte a coda, tappeto persiano con le frange, ritratto a olio del capotreno.
 
 ## Comandi
 

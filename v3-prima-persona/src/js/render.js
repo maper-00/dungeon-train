@@ -443,16 +443,19 @@ class Builder {
   constructor() { this.parts = new Map(); }
   box(mat, x, y, z, w, h, d, rotY) {
     const g = new THREE.BoxGeometry(w, h, d); if (rotY) g.rotateY(rotY); g.translate(x, y + h / 2, z);
-    if (mat.userData.tile) worldUV(g, mat.userData.tile, mat.userData.toff);
+    // pareti: texture del mondo; il resto: UV in metri lungo il lato più lungo (legno, pelle e ottone con la stessa grana)
+    if (mat.userData.tile) worldUV(g, mat.userData.tile, mat.userData.toff); else grainUV(g);
     let a = this.parts.get(mat); if (!a) { a = []; this.parts.set(mat, a); } a.push(g); return this;
   }
   geo(mat, g) { let a = this.parts.get(mat); if (!a) { a = []; this.parts.set(mat, a); } a.push(g); return this; }
   build(parent, cast = true, recv = true) {
     const out = [];
     for (const [m, gs] of this.parts) {
+      // le estrusioni non sono indicizzate: se ce n'è una, si uniscono tutte senza indici
+      if (gs.some(g => !g.index) && gs.some(g => g.index)) for (let i = 0; i < gs.length; i++) if (gs[i].index) { const o = gs[i]; gs[i] = o.toNonIndexed(); o.dispose(); }
       const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(gs, false);
       gs.forEach(g => g.dispose());
-      const mesh = new THREE.Mesh(merged, m); mesh.castShadow = cast; mesh.receiveShadow = recv; mesh.userData.own = true;
+      const mesh = new THREE.Mesh(merged, m); mesh.castShadow = cast && !m.userData.noCast; mesh.receiveShadow = recv; mesh.userData.own = true;
       parent.add(mesh); out.push(mesh);
     }
     this.parts.clear(); return out;

@@ -12,9 +12,18 @@ function buildMobMaterials() {
   MAT.phantom = new THREE.MeshStandardMaterial({ color: lin(0xb8a8ff), emissive: lin(0x6a4ae0), emissiveIntensity: 1.4, transparent: true, opacity: .55, roughness: .4, depthWrite: false });
   MAT.phantomDark = new THREE.MeshStandardMaterial({ color: lin(0x2a2048), emissive: lin(0x20104a), emissiveIntensity: .8, transparent: true, opacity: .78, roughness: .6, depthWrite: false });
   MAT.phantomEye = new THREE.MeshStandardMaterial({ color: lin(0xf0e8ff), emissive: lin(0xb090ff), emissiveIntensity: 5, transparent: true, opacity: 1, roughness: .5 });
+  // velluto e metalli con la luce di contorno per ragni e automi
+  const fur = TEX.furP, phys = (hex, o) => new THREE.MeshPhysicalMaterial(Object.assign({ color: lin(hex), roughness: .85 }, o));
+  Object.assign(MAT, {
+    cSpider: rim(phys(0x3a2a4a, { map: fur.map, bumpMap: fur.bump, bumpScale: .015, sheen: 1, sheenColor: lin(0xc8a0ff), sheenRoughness: .4 }), 0xc8ffb0, .5),
+    cQueen: rim(phys(0x4a2266, { map: fur.map, bumpMap: fur.bump, bumpScale: .015, sheen: 1, sheenColor: lin(0xff9ad8), sheenRoughness: .4 }), 0xc8ffb0, .55),
+    cSpiderLeg: rim(phys(0x1e1826, { roughness: .35, clearcoat: .8, clearcoatRoughness: .2 }), 0xc8ffb0, .4),
+    cSpiderKnee: phys(0x7ae070, { emissive: lin(0x2a7a10), emissiveIntensity: .8, roughness: .3 }),
+    cCopper: rim(Object.assign(MAT.brassAged.clone(), { color: lin(0xc87a4a) }), 0xffc8a0, .3)
+  });
 }
 // ritratti: distanza, altezza dello sguardo, scala
-const PORT = { ratto: [4.4, .5, 1.9], bigliettaio: [5.6, 1.3, 1], cuoco: [4.8, 1.05, 1], mimic: [4.2, .45, 1.25], fantasma: [4.8, 1.05, 1], ragno: [4.2, .4, 1.5], regina: [4.6, .55, .62], guardia: [4.6, 1.0, 1], automa: [4.2, .8, 1.05], capotreno: [4.8, .98, .72] };
+const PORT = { ratto: [4.4, .55, 1.9], scheletro: [5.8, 1.15, 1], arciere: [5.8, 1.15, 1], fuochista: [5.8, 1.15, 1], bigliettaio: [6.6, 1.15, 1], cuoco: [6.6, 1.35, 1], mimic: [4.4, .5, 1.25], fantasma: [5.2, 1.0, 1], ragno: [4.8, .45, 1.1], regina: [5.6, .6, .55], guardia: [5.8, 1.15, 1], automa: [4.4, .8, 1.05], capotreno: [6.6, 1.3, .72] };
 function makeMobModel(type, wtype, still) {
   if (type === 'ratto') return ratModel();
   if (type === 'bigliettaio') return ghostModel();
@@ -26,110 +35,192 @@ function makeMobModel(type, wtype, still) {
 }
 
 /* ---------- modelli ---------- */
+// mannaia da cucina: manico di noce con i rivetti, lama larga con il foro
 function cleaverModel() {
   const g = new THREE.Group();
-  bx(g, MAT.woodDark, .045, .05, .17, 0, 0, 0); bx(g, MAT.brass, .055, .055, .02, 0, 0, .09);
-  bx(g, MAT.steel, .025, .21, .27, 0, -.065, .24); bx(g, MAT.steelDark, .03, .03, .27, 0, .045, .24);
-  return castAll(g);
+  part(g, MAT.varnishDark, sg('clvH', () => tubeZ(.024, .028, .17, 10)));
+  for (const z of [-.04, .04]) part(g, MAT.brassAged, sg('clvRiv', () => sph(.008, 6, 5)), 0, .026, z);
+  part(g, MAT.brassAged, sg('clvFer', () => tubeZ(.03, .03, .02, 10)), 0, 0, .09);
+  part(g, MAT.steel, sg('clvB', () => { const s = new THREE.Shape(); s.moveTo(0, 0); s.lineTo(.27, 0); s.quadraticCurveTo(.3, -.1, .27, -.21); s.lineTo(.02, -.21); s.lineTo(0, -.03); s.lineTo(0, 0); const h = new THREE.Path(); h.absarc(.22, -.045, .018, 0, TAU, true); s.holes.push(h); const g = new THREE.ExtrudeGeometry(s, { depth: .01, bevelEnabled: true, bevelThickness: .006, bevelSize: .004, bevelSegments: 1, curveSegments: 10 }); g.rotateY(-Math.PI / 2); g.translate(.005, .045, .1); return g; }));
+  return castAll(bake(g, 'cleaver'));
 }
+// pala del carbone: manico a D, lama annerita con il carbone acceso sopra
 function shovelModel() {
   const g = new THREE.Group();
-  bx(g, MAT.woodDark, .045, .045, .95, 0, 0, .3); bx(g, MAT.woodDark, .16, .04, .04, 0, 0, -.18);
-  bx(g, MAT.steelDark, .26, .03, .3, 0, 0, .9); bx(g, MAT.soot, .2, .036, .12, 0, .005, .95);
-  bx(g, MAT.ember, .08, .04, .06, .04, .022, .93, false);
-  return castAll(g);
+  part(g, MAT.oak, sg('shvS', () => tubeZ(.022, .024, .95, 10)), 0, 0, .3);
+  part(g, MAT.oak, sg('shvD', () => new THREE.TorusGeometry(.07, .016, 6, 14, Math.PI).rotateZ(Math.PI / 2).rotateY(Math.PI / 2)), 0, 0, -.18);
+  part(g, MAT.iron, sg('shvB', () => { const g = rbox(.26, .02, .32, .008, 1), P = g.attributes.position.array; for (let i = 0; i < P.length; i += 3) P[i + 1] += Math.pow(P[i] / .13, 2) * .03; g.computeVertexNormals(); return g; }), 0, 0, .92);
+  part(g, MAT.coal, sg('shvC', () => blob(.09, .03, .08, 10)), 0, .03, .93);
+  part(g, MAT.ember, sg('shvE', () => blob(.035, .02, .03, 8)), .04, .05, .94, 0, 0, 0, false);
+  return castAll(bake(g, 'shovel'));
 }
+// Baule Mimetico: un baule da viaggio vero, foderato di velluto rosso dentro, denti d'avorio, una lingua lunghissima,
+// un unico occhio giallo nel coperchio e quattro zampe di poltrona con gli artigli d'ottone
 function mimicModel(awake) {
-  const g = new THREE.Group(), body = pivot(g, 0, 0, 0);
-  bx(body, MAT.trunk, 1.0, .5, .66, 0, .25, 0);
-  bx(body, MAT.brass, 1.04, .06, .7, 0, .1, 0); bx(body, MAT.brass, 1.04, .06, .7, 0, .42, 0);
-  for (const x of [-.36, .36]) bx(body, MAT.woodDark, .08, .5, .7, x, .25, 0);
-  bx(body, MAT.mouth, .9, .02, .56, 0, .495, 0, false);
-  for (let i = 0; i < 7; i++) for (const z of [.27, -.27]) { const t = bx(body, MAT.teeth, .06, .1, .05, -.39 + i * .13, .54, z, false); t.rotation.z = i % 2 ? .15 : -.15; }
-  const tongue = pivot(body, 0, .5, -.15); bx(tongue, MAT.tongue, .22, .05, .42, 0, .02, .2, false);
-  const lid = pivot(body, 0, .5, -.33);
-  bx(lid, MAT.trunk, 1.0, .2, .66, 0, .1, .33); bx(lid, MAT.brass, 1.04, .05, .7, 0, .2, .33); bx(lid, MAT.brass, .14, .16, .06, 0, .02, .67);
-  for (const x of [-.36, .36]) bx(lid, MAT.woodDark, .08, .2, .7, x, .1, .33);
-  for (let i = 0; i < 7; i++) bx(lid, MAT.teeth, .06, .1, .05, -.39 + i * .13, -.04, .6, false);
-  for (const x of [-.2, .2]) bx(lid, MAT.mimicEye, .13, .02, .08, x, -.005, .42, false);
-  const legs = [[-.4, .24], [.4, .24], [-.4, -.24], [.4, -.24]].map(([x, z]) => { const p = pivot(body, x, .06, z); bx(p, MAT.woodDark, .1, .22, .1, 0, -.05, 0); p.visible = !!awake; return p; });
-  g.userData = { body, lid, tongue, legs };
+  const g = new THREE.Group(), body = pivot(g, 0, 0, 0), b = new Builder(), k = new Kit(b);
+  k.box(MAT.oak, 1.0, .5, .66, 0, 0, 0, .025);
+  for (const x of [-.36, .36]) k.box(MAT.varnishDark, .08, .51, .675, x, -.005, 0, .012);
+  k.box(MAT.brassAged, 1.02, .05, .68, 0, .06, 0, .01); k.box(MAT.brassAged, 1.02, .05, .68, 0, .43, 0, .01);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.box(MAT.brassAged, .1, .1, .1, sx * .47, 0, sz * .3, .015);
+  k.box(MAT.velvetCurtain, .92, .02, .56, 0, .48, 0, .005);
+  k.put(MAT.stickers, stickerPlane(.2, .16, 6), .2, .27, .332);
+  b.build(body);
+  for (let i = 0; i < 9; i++) for (const z of [.27, -.27]) part(body, MAT.cWhite, sg('mmTooth', () => new THREE.ConeGeometry(.028, .09, 8)), -.4 + i * .1, .54, z, 0, 0, i % 2 ? .12 : -.12, false);
+  const tongue = pivot(body, 0, .5, -.15);
+  part(tongue, MAT.cPink, sg('mmTongue', () => taperTube([[0, 0, 0], [0, .04, .18], [0, .02, .36], [0, .08, .5], [0, .14, .52]], t => .07 * (1 - t * .5), 20, 10).scale(1.4, .45, 1)), 0, .02, 0, 0, 0, 0, false);
+  const lid = pivot(body, 0, .5, -.33), lb = new Builder(), lk = new Kit(lb);
+  lk.put(MAT.oak, cylUV(new THREE.CylinderGeometry(.33, .33, 1.0, 20, 1, false, 0, Math.PI), 1, 1), 0, 0, .33, 0, 0, Math.PI / 2);
+  for (const x of [-.36, .36]) lk.put(MAT.varnishDark, cylUV(new THREE.CylinderGeometry(.338, .338, .08, 20, 1, false, 0, Math.PI), .08, 1), x, 0, .33, 0, 0, Math.PI / 2);
+  lk.put(MAT.velvetCurtain, new THREE.CircleGeometry(.31, 20, 0, Math.PI).scale(1.5, 1, 1).rotateX(Math.PI / 2), 0, -.005, .33);
+  lk.box(MAT.brassAged, .14, .14, .03, 0, -.06, .665, .01);
+  lb.build(lid); lid.scale.y = .62;
+  for (let i = 0; i < 9; i++) part(lid, MAT.cWhite, sg('mmToothT', () => new THREE.ConeGeometry(.026, .08, 8).rotateX(Math.PI)), -.4 + i * .1, -.04, .62, 0, 0, 0, false);
+  const eye = pivot(lid, 0, -.02, .36);
+  part(eye, MAT.cWhite, sg('mmEye', () => blob(.13, .03, .1, 18)), 0, 0, 0, 0, 0, 0, false);
+  part(eye, MAT.mimicEye, sg('mmIris', () => blob(.07, .012, .07, 16)), 0, -.022, .0, 0, 0, 0, false);
+  part(eye, MAT.black, sg('mmPupil', () => blob(.014, .006, .055, 10)), 0, -.033, 0, 0, 0, 0, false);
+  const legs = [[-.4, .24], [.4, .24], [-.4, -.24], [.4, -.24]].map(([x, z]) => {
+    const p = pivot(body, x, .06, z), sx = Math.sign(x);
+    part(p, MAT.varnishDark, sg('mmLeg' + sx, () => lathe([[.03, -.22], [.045, -.18], [.035, -.1], [.05, -.02], [.04, .04], [0, .05]], 10).rotateZ(sx * -.25)));
+    for (let i = 0; i < 3; i++) part(p, MAT.brassAged, sg('mmClaw', () => new THREE.ConeGeometry(.018, .07, 6).rotateX(Math.PI / 2)), sx * .06 + (i - 1) * .03, -.22, .05);
+    p.visible = !!awake; return p;
+  });
+  g.userData = { body, lid, tongue, legs, tick(t) { eye.position.x = Math.sin(t * .8) * .08; eye.scale.y = (t * .5) % 3.1 < .12 ? .2 : 1; } };
   if (awake) { lid.rotation.x = -.95; body.position.y = .14; }
-  addBlob(g, .9); return castAll(g);
+  addBlob(g, .9); return castAll(bake(g, 'mimic'));
 }
+// Passeggero Fantasma: camicia da notte lunghissima, berretto da notte con il pon pon, mascherina sulla fronte, cuscino sotto il braccio
 function phantomModel() {
-  const g = new THREE.Group(), body = pivot(g, 0, 0, 0);
+  const g = new THREE.Group(), body = pivot(g, 0, 0, 0), ph = Math.random() * 10;
   const mG = MAT.phantom.clone(), mD = MAT.phantomDark.clone(), mE = MAT.phantomEye.clone();
-  bx(body, mG, .22, .26, .2, 0, .14, -.07, false); bx(body, mG, .34, .3, .28, 0, .38, -.03, false);
-  bx(body, mD, .52, .64, .34, 0, .82, 0, false); bx(body, mD, .55, .06, .37, 0, .54, 0, false);
-  for (let i = 0; i < 3; i++) bx(body, mE, .045, .045, .02, 0, 1.0 - i * .14, .175, false);
+  rim(mG, 0xd8c8ff, 1.2, 1.8); rim(mD, 0xb8a0ff, .8, 2.2);
+  const tailGeo = lathe([[0, -.2], [.05, -.15], [.1, 0], [.17, .2], [.23, .45], [.27, .6], [.2, .66], [0, .68]], 20), base = Float32Array.from(tailGeo.attributes.position.array);
+  const tail = part(body, mG, tailGeo, 0, 0, 0, 0, 0, 0, false); tail.userData.keep = true;
+  part(body, mD, sg('phGown', () => lathe([[.34, .35], [.3, .55], [.24, .75], [.24, .95], [.27, 1.05], [.16, 1.12], [.05, 1.14], [0, 1.14]], 22)), 0, 0, 0, 0, 0, 0, false);
+  for (let i = 0; i < 4; i++) part(body, mE, sg('phBtn', () => sph(.02, 8, 6)), 0, .7 + i * .1, .245 - i * .004, 0, 0, 0, false);
+  part(body, mD, sg('phFrill', () => new THREE.TorusGeometry(.13, .035, 6, 18).rotateX(Math.PI / 2)), 0, 1.12, 0, 0, 0, 0, false);
   const head = pivot(body, 0, 1.15, 0);
-  bx(head, mG, .34, .34, .32, 0, .17, 0, false);
-  for (const x of [-.08, .08]) bx(head, mE, .07, .05, .02, x, .19, .165, false);
-  bx(head, mD, .46, .04, .46, 0, .36, 0, false); bx(head, mD, .28, .19, .28, 0, .47, 0, false);
-  const armL = pivot(body, -.33, 1.07, 0), armR = pivot(body, .33, 1.07, 0);
-  for (const A of [armL, armR]) { bx(A, mD, .14, .5, .16, 0, -.25, 0, false); bx(A, mG, .11, .11, .11, 0, -.55, 0, false); }
-  const bag = pivot(armL, 0, -.6, 0); bx(bag, mD, .1, .32, .44, 0, -.2, 0, false); bx(bag, mE, .11, .04, .1, 0, -.02, 0, false);
+  part(head, mG, sg('phHead', () => blob(.17, .19, .16, 20)), 0, .16, 0, 0, 0, 0, false);
+  for (const sx of [-1, 1]) {
+    part(head, mE, sg('phEye', () => blob(.05, .03, .02, 12)), sx * .07, .17, .145, 0, 0, sx * .15, false);
+    part(head, mD, sg('phLid', () => new THREE.SphereGeometry(.055, 12, 6, 0, TAU, 0, Math.PI / 2).scale(1, .6, .5)), sx * .07, .18, .15, 0, 0, sx * .15, false);
+  }
+  part(head, mD, sg('phMask', () => rbox(.26, .06, .03, .015)), 0, .28, .14, -.3, 0, 0, false);
+  part(head, mD, sg('phCap', () => taperTube([[0, .26, -.02], [0, .4, -.05], [.06, .5, -.2], [.14, .44, -.36], [.2, .3, -.42]], t => .17 * (1 - t * .85), 24, 14)), 0, 0, 0, 0, 0, 0, false);
+  part(head, mE, sg('phPom', () => sph(.05, 10, 8)), .2, .26, -.43, 0, 0, 0, false);
+  part(head, mG, sg('phMouth', () => blob(.03, .018, .01, 8)), 0, .07, .155, 0, 0, 0, false);
+  const armL = pivot(body, -.27, 1.05, 0), armR = pivot(body, .27, 1.05, 0);
+  for (const A of [armL, armR]) {
+    part(A, mD, sg('phSleeve', () => taperTube([[0, 0, 0], [0, -.25, .02], [0, -.45, 0]], t => .07 + t * .025, 10, 10)), 0, 0, 0, 0, 0, 0, false);
+    part(A, mG, sg('phHand', () => blob(.05, .06, .045, 10)), 0, -.52, .02, 0, 0, 0, false);
+  }
+  const bag = pivot(armL, 0, -.55, 0);
+  part(bag, mD, sg('phPillow', () => rbox(.12, .3, .42, .06, 2)), 0, -.12, 0, 0, 0, 0, false);
+  part(bag, mE, sg('phPillowLace', () => new THREE.TorusGeometry(.14, .01, 4, 18).scale(1, 1.2, 1.6).rotateY(Math.PI / 2)), .062, -.12, 0, 0, 0, 0, false);
   const glow = glowSprite(g, 0, .85, 0, 2.4, 0x9a7aff, .3);
-  g.userData = { body, head, armL, armR, glow, mats: [[mG, .55], [mD, .78], [mE, 1]] };
-  return g;
+  g.userData = {
+    body, head, armL, armR, glow, mats: [[mG, .55], [mD, .78], [mE, 1]],
+    tick(t) {
+      const P = tailGeo.attributes.position.array;
+      for (let i = 0; i < P.length; i += 3) { const y = base[i + 1], k = Math.pow(Math.max(0, (.6 - y) / .8), 1.6); P[i] = base[i] + Math.sin(t * 2.4 + y * 5 + ph) * .1 * k; P[i + 2] = base[i + 2] - k * .2; }
+      tailGeo.attributes.position.needsUpdate = true;
+    }
+  };
+  return bake(g, 'phantom');
 }
+// Ragno delle Serre: addome di velluto viola con un'orchidea che gli sboccia sulla schiena, occhioni lucidi a grappolo, zampe a giunti.
+// La Regina porta una corona di fiori carnivori e un velo di ragnatela
 function spiderModel(queen) {
-  const g = new THREE.Group(), body = pivot(g, 0, 0, 0), mB = queen ? MAT.queen : MAT.spider, mL = MAT.spiderB;
-  bx(body, mB, .52, .4, .6, 0, .44, -.36); bx(body, mB, .4, .3, .42, 0, .52, -.42);
-  bx(body, queen ? MAT.queenMark : MAT.spiderMark, .14, .02, .32, 0, .675, -.4, false);
-  bx(body, mB, .34, .26, .34, 0, .38, .08);
-  for (const [x, y] of [[-.06, .47], [.06, .47], [-.12, .43], [.12, .43]]) bx(body, MAT.spiderEye, .05, .05, .02, x, y, .255, false);
-  for (const x of [-.06, .06]) bx(body, MAT.bone, .04, .13, .04, x, .28, .25);
+  const g = new THREE.Group(), body = pivot(g, 0, 0, 0), mB = queen ? MAT.cQueen : MAT.cSpider, mL = MAT.cSpiderLeg;
+  part(body, mB, sg('spAbd', () => blob(.27, .22, .32, 22, .1)), 0, .46, -.4, .25, 0, 0);
+  part(body, queen ? MAT.queenMark : MAT.spiderMark, sg('spStripe', () => taperTube([[0, .66, -.18], [0, .7, -.36], [0, .62, -.6]], t => .05 * Math.sin(Math.PI * (.15 + t * .7)), 14, 8)), 0, 0, 0, 0, 0, 0, false);
+  for (let i = 0; i < 5; i++) part(body, queen ? MAT.bloomPink : MAT.bloomTeal, sg('spPetal', () => blob(.07, .02, .12, 10).translate(0, 0, .1)), 0, .69, -.4, -.35, i / 5 * TAU, 0, false);
+  part(body, MAT.mimicEye, sg('spPistil', () => sph(.035, 10, 8)), 0, .72, -.4, 0, 0, 0, false);
+  part(body, mB, sg('spThorax', () => blob(.17, .14, .17, 18)), 0, .4, .06);
+  part(body, mB, sg('spHead', () => blob(.12, .1, .1, 16)), 0, .43, .22);
+  for (const [x, y, r] of [[-.05, .47, .045], [.05, .47, .045], [-.11, .44, .025], [.11, .44, .025], [-.03, .52, .02], [.03, .52, .02]]) {
+    part(body, MAT.cEye, sg('spEyeB' + r, () => sph(r, 12, 10)), x, y, .29);
+    part(body, MAT.spiderEye, sg('spEyeG' + r, () => sph(r * .45, 8, 6)), x + .006, y + .008, .29 + r * .85, 0, 0, 0, false);
+  }
+  for (const x of [-.04, .04]) part(body, MAT.cBone, sg('spFang', () => new THREE.ConeGeometry(.018, .1, 8).rotateX(Math.PI)), x, .33, .29, -.3, 0, 0);
   const legs = [];
   for (const sd of [-1, 1]) for (let i = 0; i < 4; i++) {
-    const hip = pivot(body, sd * .15, .42, .16 - i * .1); hip.rotation.y = sd * (i - 1.5) * .38;
-    const up = bx(hip, mL, .36, .05, .05, sd * .15, .1, 0); up.rotation.z = sd * .55;
-    const lo = bx(hip, mL, .05, .5, .05, sd * .34, -.12, 0); lo.rotation.z = sd * .35;
+    const hip = pivot(body, sd * .13, .42, .14 - i * .09); hip.rotation.y = sd * (i - 1.5) * .38;
+    part(hip, mL, sg('spLegU' + sd, () => taperTube([[0, 0, 0], [sd * .18, .18, 0], [sd * .32, .2, 0]], t => .03 - t * .008, 10, 6)));
+    part(hip, MAT.cSpiderKnee, sg('spKnee', () => sph(.03, 8, 6)), sd * .32, .2, 0);
+    part(hip, mL, sg('spLegL' + sd, () => taperTube([[sd * .32, .2, 0], [sd * .44, .0, 0], [sd * .5, -.4, 0]], t => .022 * (1 - t * .7), 12, 6)));
     legs.push({ hip, sd, i, ry: hip.rotation.y });
   }
   if (queen) {
-    for (let i = 0; i < 5; i++) { const c = bx(body, MAT.queenMark, .04, .16, .04, -.12 + i * .06, .58, .12 - Math.abs(i - 2) * .02, false); c.rotation.z = (i - 2) * .2; }
-    for (const x of [-.18, .18]) bx(body, MAT.queenMark, .06, .06, .3, x, .56, -.4, false);
+    for (let i = 0; i < 7; i++) { const a = (i - 3) * .32; part(body, MAT.bloomPink, sg('spCrownP', () => new THREE.ConeGeometry(.03, .14, 6)), Math.sin(a) * .1, .56, .18 + Math.cos(a) * .02 - .02, -.2, 0, a * .6, false); part(body, MAT.mimicEye, sg('spCrownG', () => sph(.016, 6, 5)), Math.sin(a) * .1, .64, .19, 0, 0, 0, false); }
+    part(body, MAT.web, sg('spVeil', () => new THREE.SphereGeometry(.2, 16, 8, 0, TAU, 0, Math.PI * .45).scale(1.2, 1, 1.4)), 0, .44, -.02, -.4, 0, 0, false);
     g.scale.setScalar(2.2);
   }
   g.userData = { body, legs };
-  addBlob(g, .9); return castAll(g);
+  addBlob(g, .9); return castAll(bake(g, queen ? 'queen' : 'spider'));
 }
+// Automa a Molla: una teiera di rame su due gambe, beccuccio per naso, coperchio per testa con l'occhio a feritoia, papillon e la chiave di carica
 function automatonModel() {
   const g = new THREE.Group(), body = pivot(g, 0, 0, 0);
-  const legL = pivot(body, -.17, .44, 0), legR = pivot(body, .17, .44, 0);
-  for (const L of [legL, legR]) { bx(L, MAT.steelDark, .12, .36, .12, 0, -.18, 0); bx(L, MAT.copperDark, .2, .08, .28, 0, -.4, .04); }
+  const legL = pivot(body, -.16, .44, 0), legR = pivot(body, .16, .44, 0);
+  for (const L of [legL, legR]) {
+    part(L, MAT.steelDark, sg('auThigh', () => taperTube([[0, 0, 0], [0, -.16, .05], [0, -.34, 0]], () => .035, 8, 8)));
+    part(L, MAT.brassAged, sg('auKnee', () => sph(.045)), 0, -.16, .05);
+    part(L, MAT.copperDark, sg('auFoot', () => blob(.09, .05, .14, 12, -.3)), 0, -.38, .05);
+  }
   const upper = pivot(body, 0, .44, 0);
-  const m = (geo, mat, x, y, z) => { const o = new THREE.Mesh(geo, mat); o.position.set(x, y, z); upper.add(o); return o; };
-  m(wg('autoB', () => new THREE.CylinderGeometry(.34, .3, .62, 10)), MAT.copper, 0, .34, 0);
-  for (const y of [.08, .34, .6]) m(wg('autoR', () => new THREE.CylinderGeometry(.355, .355, .05, 10)), MAT.brass, 0, y, 0);
-  bx(upper, MAT.black, .3, .18, .04, 0, .36, .33);
-  for (let i = 0; i < 3; i++) bx(upper, MAT.brass, .3, .02, .05, 0, .3 + i * .06, .34);
-  const head = pivot(upper, 0, .66, 0);
-  const dome = new THREE.Mesh(wg('autoH', () => new THREE.SphereGeometry(.25, 10, 5, 0, TAU, 0, Math.PI / 2)), MAT.copper); head.add(dome);
-  const eye = bx(head, MAT.eyeAmber, .3, .05, .07, 0, .1, .19, false);
-  bx(head, MAT.brass, .05, .16, .05, .1, .28, -.04); bx(head, MAT.brass, .08, .04, .08, .1, .37, -.04);
-  const key = pivot(upper, 0, .4, -.34); bx(key, MAT.brass, .05, .05, .2, 0, 0, -.08);
-  for (const s of [-1, 1]) bx(key, MAT.brass, .16, .26, .03, s * .1, 0, -.2);
-  const armL = pivot(upper, -.4, .54, 0), armR = pivot(upper, .4, .54, 0);
-  for (const A of [armL, armR]) { bx(A, MAT.copperDark, .1, .42, .1, 0, -.21, 0); bx(A, MAT.steel, .05, .17, .1, -.04, -.48, .03); bx(A, MAT.steel, .05, .17, .1, .04, -.48, .03); }
+  part(upper, MAT.cCopper, sg('auPot', () => lathe([[0, 0], [.22, 0], [.3, .08], [.35, .28], [.33, .48], [.26, .6], [.2, .64], [0, .64]], 24)));
+  for (const y of [.08, .34]) part(upper, MAT.brassAged, sg('auBand' + y, () => new THREE.TorusGeometry(y < .2 ? .31 : .352, .016, 6, 28).rotateX(Math.PI / 2)), 0, y, 0);
+  part(upper, MAT.cCopper, sg('auSpout', () => taperTube([[0, .2, .3], [0, .26, .45], [0, .4, .55], [0, .46, .6]], t => .06 * (1 - t * .5), 14, 10)));
+  part(upper, MAT.cRibbon, sg('auBow', () => new THREE.ConeGeometry(.05, .1, 10).rotateZ(Math.PI / 2)), -.05, .58, .22, 0, 0, 0);
+  part(upper, MAT.cRibbon, sg('auBow2', () => new THREE.ConeGeometry(.05, .1, 10).rotateZ(-Math.PI / 2)), .05, .58, .22, 0, 0, 0);
+  for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; part(upper, MAT.brassAged, sg('auRiv', () => sph(.012, 6, 5)), Math.sin(a) * .352, .34, Math.cos(a) * .352); }
+  const head = pivot(upper, 0, .64, 0);
+  part(head, MAT.cCopper, sg('auLid', () => lathe([[0, .2], [.08, .19], [.18, .12], [.22, .03], [.24, 0], [0, 0]], 22)));
+  part(head, MAT.brassAged, sg('auKnob', () => lathe([[0, 0], [.04, 0], [.025, .04], [.05, .08], [0, .1]], 12)), 0, .19, 0);
+  part(head, MAT.cSocket, sg('auVisor', () => rbox(.28, .06, .06, .02)), 0, .09, .17);
+  const eye = new THREE.Mesh(sg('auEye', () => rbox(.24, .035, .03, .012)), MAT.eyeAmber); eye.position.set(0, .09, .195); eye.userData.keep = true; head.add(eye);
+  const key = pivot(upper, 0, .36, -.33);
+  part(key, MAT.brassAged, sg('rbKeyRod', () => tubeZ(.018, .018, .1, 8)), 0, 0, -.05);
+  for (const sx of [-1, 1]) part(key, MAT.brassAged, sg('auKeyWing', () => blob(.1, .07, .015, 16)), sx * .1, 0, -.12);
+  const armL = pivot(upper, -.36, .46, 0), armR = pivot(upper, .36, .46, 0);
+  for (const [A, sx] of [[armL, -1], [armR, 1]]) {
+    part(A, MAT.brassAged, sg('auShoulder', () => sph(.05)));
+    part(A, MAT.copperDark, sg('auArm', () => taperTube([[0, 0, 0], [0, -.2, .03], [0, -.4, 0]], () => .03, 8, 8)));
+    part(A, MAT.steel, sg('auSpring', () => { const pts = []; for (let i = 0; i <= 40; i++) { const a = i / 40 * TAU * 4; pts.push([Math.cos(a) * .035, -.42 - i / 40 * .12, Math.sin(a) * .035]); } return taperTube(pts, () => .008, 60, 4); }));
+    part(A, MAT.porcelain, sg('auCup', () => lathe([[0, 0], [.03, 0], [.045, .015], [.055, .06], [.05, .062], [.045, .02], [0, .018]], 16)), 0, -.6, .02);
+  }
   g.userData = { body, upper, legL, legR, armL, armR, head, key, eye };
-  addBlob(g, .8); return castAll(g);
+  addBlob(g, .8); return castAll(bake(g, 'automa'));
 }
+// la bottega di Bullone: carretto di legno con le ruote a raggi, tendone a strisce con la balza, armi in vetrina, Bullone col cilindro
 function merchantModel() {
-  const g = new THREE.Group(), b = new Builder();
-  b.box(MAT.wood, 0, .42, 0, 2.0, .55, 1.0).box(MAT.woodDark, 0, .97, 0, 2.15, .08, 1.1).box(MAT.brass, 0, .4, .51, 2.0, .05, .03);
-  for (const [x, z] of [[-1, -.5], [1, -.5], [-1, .5], [1, .5]]) b.box(MAT.brass, x, 1.0, z, .06, 1.3, .06);
-  for (let i = 0; i < 6; i++) b.box(i % 2 ? MAT.cream : MAT.red, -1.0 + .175 + i * .35, 2.3, 0, .35, .07, 1.3);
-  b.box(MAT.brass, 0, 2.37, 0, 2.2, .04, 1.36);
-  for (let i = 0; i < 6; i++) b.box(i % 2 ? MAT.cream : MAT.red, -1.0 + .175 + i * .35, 2.08, .66, .35, .24, .03);
+  const g = new THREE.Group(), b = new Builder(), k = new Kit(b);
+  k.box(MAT.oak, 2.0, .55, 1.0, 0, .42, 0, .03); k.box(MAT.varnish, 2.16, .08, 1.12, 0, .97, 0, .025);
+  k.box(MAT.brassAged, 2.02, .05, .03, 0, .62, .51, .01); k.box(MAT.velvetCurtain, 1.9, .02, .9, 0, 1.05, 0, .005);
+  for (const [x, z] of [[-1, -.5], [1, -.5], [-1, .5], [1, .5]]) k.cyl(MAT.brassAged, .025, .025, 1.3, x, 1.0, z, 10);
+  // tendone: tela a strisce bianche e rosse che ricade a festoni
+  for (let i = 0; i < 6; i++) {
+    const x = -1.0 + .175 + i * .35, m = i % 2 ? MAT.cChef : MAT.cRibbon;
+    const roof = new THREE.PlaneGeometry(.35, 1.36, 2, 6), P = roof.attributes.position.array; for (let j = 0; j < P.length; j += 3) P[j + 2] = -Math.pow(P[j + 1] / .68, 2) * .12;
+    roof.rotateX(-Math.PI / 2); roof.computeVertexNormals(); k.put(m, roof, x, 2.42, 0);
+    const fr = new THREE.PlaneGeometry(.35, .28, 6, 2), F = fr.attributes.position.array; for (let j = 0; j < F.length; j += 3) if (F[j + 1] < 0) F[j + 1] -= Math.cos((F[j] / .175) * Math.PI / 2) * .06;
+    k.put(m, fr, x, 2.18, .68);
+  }
+  k.cyl(MAT.brassAged, .022, .022, 2.2, 0, 2.31, .68, 10, 0, 0, Math.PI / 2);
   b.build(g);
-  for (const x of [-.65, .65]) { const w = new THREE.Mesh(wg('cartW', () => new THREE.CylinderGeometry(.38, .38, .08, 12).rotateX(Math.PI / 2)), MAT.woodDark); w.position.set(x, .38, .56); g.add(w); }
+  for (const x of [-.65, .65]) {
+    const w = pivot(g, x, .38, .56);
+    part(w, MAT.iron, sg('cartRim', () => new THREE.TorusGeometry(.36, .03, 6, 28)));
+    part(w, MAT.varnishDark, sg('cartHub', () => tubeZ(.07, .07, .1, 12)));
+    for (let i = 0; i < 8; i++) part(w, MAT.varnishDark, sg('cartSpoke', () => new THREE.CylinderGeometry(.014, .02, .34, 6).translate(0, .17, 0)), 0, 0, 0, 0, 0, i / 8 * TAU);
+  }
   const items = [['spada', -.6], ['balestra', 0], ['lanterna', .6]];
   for (const [t, x] of items) { const w = weaponModel(t, 1); w.scale.setScalar(.7); w.rotation.set(-Math.PI / 2 + .25, .5, 0); w.position.set(x, 1.08, .1); g.add(w); }
   const bot = robotModel(); bot.position.set(0, 0, -.9); bot.scale.setScalar(1.25); g.add(bot); bot.children.filter(c => c.isLight).forEach(c => bot.remove(c)); // niente luci in più: cambierebbero gli shader a metà partita
-  bx(bot, MAT.black, .34, .26, .34, 0, 1.2, -.04); bx(bot, MAT.black, .5, .03, .5, 0, 1.08, -.04); bx(bot, MAT.red, .35, .05, .35, 0, 1.11, -.04);
+  const hat = pivot(bot, .1, .74, .02); hat.rotation.z = -.25;
+  part(hat, MAT.cFelt, sg('botHat', () => lathe([[0, .3], [.12, .3], [.12, .29], [.11, .06], [.18, .03], [.19, .015], [.11, 0], [0, 0]], 22)));
+  part(hat, MAT.cRibbon, sg('botHatBand', () => lathe([[.112, .06], [.114, .1], [.112, .1]], 22)));
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.2, .45), new THREE.MeshStandardMaterial({ map: signTexture('BOTTEGA', 'SI ACCETTANO MONETE'), roughness: .5, emissive: lin(0x3a2a10), emissiveIntensity: .7 }));
   sign.position.set(0, 1.55, .54); sign.userData.own = true; g.add(sign);
   glowSprite(g, 0, 1.9, .3, 2.6, 0xffb060, .35);
