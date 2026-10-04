@@ -2,7 +2,7 @@
 
 La partita vista con gli occhi del personaggio: cabina letto, scelta della classe, poi dieci vagoni a tema fino alla locomotiva, dove aspetta il Capotreno.
 
-- Pagina condivisa (chiunque abbia il link): https://claude.ai/artifact/SuMEqPePmXT2YwKD6JkWJd, con i dieci vagoni e la difficoltà ridotta. Le versioni precedenti restano nella cronologia della pagina.
+- Pagina condivisa (chiunque abbia il link): https://claude.ai/artifact/SuMEqPePmXT2YwKD6JkWJd, con i dieci vagoni, la difficoltà ridotta, i personaggi strambi e gli oggetti realistici. Le versioni precedenti restano nella cronologia della pagina.
 - `dungeon-train-fps.html`: la pagina pronta da aprire (three.js 0.147 da jsdelivr).
 - `src/`: sorgenti. `python3 build.py dungeon-train-fps.html` ricostruisce la pagina; con `local` come secondo argomento crea una versione di prova che usa una copia locale di three.js in `../three/package/` ed espone `window.DBG` (con `DBG.tick(n)` per far avanzare il gioco di n fotogrammi nei test automatici).
 - Ordine dei file: head.html, poi js/core.js, render.js, shapes.js, models.js, mobs.js, props.js, levels.js, wagons.js, game.js, view.js, ui.js, main.js.
